@@ -1,2 +1,2 @@
-web: python3 -m Adarsh
+web: python3 app.py
  
