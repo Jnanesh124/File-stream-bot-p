@@ -60,8 +60,7 @@ async def start(client, message):
 # Create the buttons
 rm = InlineKeyboardMarkup([
     [InlineKeyboardButton("📢 Join main Channel 📢", url="https://t.me/ROCKERSBACKUP")],
-    [InlineKeyboardButton("🍁 Join bot update channel 🍁", url="https://t.me/Rockers_Bots")]
-    [InlineKeyboardButton("📍 SUBSCRIBE MY YOUTUBE CHANNEL 📍", url="https://youtube.com/@jnentertainment.?si=7N8hSi28Ehz1Lg89")]  # Change the URL to your website or another destination
+    [InlineKeyboardButton("🍁 Join bot update channel 🍁", url="https://t.me/Rockers_Bots")],  # Change the URL as needed
 ])
 
 await client.send_message(
