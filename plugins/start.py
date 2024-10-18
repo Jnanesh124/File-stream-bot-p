@@ -18,10 +18,10 @@ async def is_subscribed(bot, user_id, channels):
             if member.status in ['member', 'administrator', 'creator']:
                 continue
             else:
-                chat = await bot.get_chat(int(channel_id))
+                chat = await bot.get_chat(channel_id)
                 return False, chat.invite_link
         except UserNotParticipant:
-            chat = await bot.get_chat(int(channel_id))
+            chat = await bot.get_chat(channel_id)
             return False, chat.invite_link
         except Exception as e:
             print(f"Error fetching member: {e}")
@@ -29,8 +29,9 @@ async def is_subscribed(bot, user_id, channels):
 
 @Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
+    user_id = message.from_user.id
+    
     if AUTH_CHANNEL:
-        user_id = message.from_user.id
         is_subscribed_status, invite_link = await is_subscribed(client, user_id, AUTH_CHANNEL)
 
         if not is_subscribed_status:
