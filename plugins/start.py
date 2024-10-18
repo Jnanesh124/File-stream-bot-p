@@ -3,7 +3,7 @@ import humanize
 from Script import script
 from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from pyrogram.errors import UserNotParticipant
+from pyrogram.errors import UserNotParticipant, ChatAdminRequired
 from info import URL, LOG_CHANNEL, SHORTLINK, AUTH_CHANNEL, SECOND_AUTH_CHANNEL
 from urllib.parse import quote_plus
 from TechVJ.util.file_properties import get_name, get_hash, get_media_file_size
@@ -19,6 +19,7 @@ async def is_subscribed(bot, user_id, channels):
             member = await bot.get_chat_member(channel_id, user_id)
 
             if member.status in ['member', 'administrator', 'creator']:
+                print(f"User {user_id} is a member of {chat.title}.")
                 continue
             else:
                 btn.append([InlineKeyboardButton(f'Join {chat.title}', url=chat.invite_link)])
@@ -26,6 +27,8 @@ async def is_subscribed(bot, user_id, channels):
         except UserNotParticipant:
             btn.append([InlineKeyboardButton(f'Join {chat.title}', url=chat.invite_link)])
             print(f"User {user_id} is not a participant of {chat.title}.")
+        except ChatAdminRequired:
+            print(f"Bot does not have permission to access {chat.title}.")
         except Exception as e:
             print(f"Error fetching member for {channel_id}: {e}")
     return btn
