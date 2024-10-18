@@ -3,7 +3,9 @@ from os import environ
 
 id_pattern = re.compile(r'^.\d+$')
 
-AUTH_CHANNEL = [int(ch) if id_pattern.search(ch) else ch for ch in environ.get('AUTH_CHANNEL', '-1002163804828').split()] # give channel id with seperate space. Ex : ('-10073828 -102782829 -1007282828')
+# Ensure AUTH_CHANNEL is set correctly
+AUTH_CHANNEL = [int(ch) if id_pattern.search(ch) else ch for ch in environ.get('AUTH_CHANNEL', '-1002163804828').split()]
+print(f"AUTH_CHANNEL IDs: {AUTH_CHANNEL}")  # Debugging line
 
 # Bot information
 SESSION = environ.get('SESSION', 'TechVJBot')
@@ -18,10 +20,8 @@ PORT = environ.get("PORT", "8080")
 MULTI_CLIENT = False
 SLEEP_THRESHOLD = int(environ.get('SLEEP_THRESHOLD', '60'))
 PING_INTERVAL = int(environ.get("PING_INTERVAL", "1200"))  # 20 minutes
-if 'DYNO' in environ:
-    ON_HEROKU = True
-else:
-    ON_HEROKU = False
+ON_HEROKU = 'DYNO' in environ
+
 URL = environ.get("URL", "https://filetostream2-bee725246d3b.herokuapp.com/")
 
 # Admins, Channels & Users
@@ -33,6 +33,6 @@ DATABASE_URI = environ.get('DATABASE_URI', "mongodb+srv://strong:strong@cluster0
 DATABASE_NAME = environ.get('DATABASE_NAME', "techvjautobot")
 
 # Shortlink Info
-SHORTLINK = bool(environ.get('SHORTLINK', False)) # Set True Or False
+SHORTLINK = bool(environ.get('SHORTLINK', False))  # Set True Or False
 SHORTLINK_URL = environ.get('SHORTLINK_URL', 'api.shareus.io')
 SHORTLINK_API = environ.get('SHORTLINK_API', 'hRPS5vvZc0OGOEUQJMJzPiojoVK2')
