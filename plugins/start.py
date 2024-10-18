@@ -20,9 +20,14 @@ async def is_subscribed(bot, query, channels):
             member = await bot.get_chat_member(channel_id, query.from_user.id)
             print(f"User status in {chat.title}: {member.status}")  # Debugging line
             
-            if member.status in ['left', 'kicked']:
+            # Check if user is a member
+            if member.status in ['member', 'administrator', 'creator']:
+                print(f"User is a member of {chat.title}")  # Debugging line
+            else:
+                print(f"User is NOT a member of {chat.title}")  # Debugging line
                 btn.append([InlineKeyboardButton(f'Join {chat.title}', url=chat.invite_link)])
         except UserNotParticipant:
+            print(f"User is not a participant in {channel_id}")  # Debugging line
             btn.append([InlineKeyboardButton(f'Join {chat.title}', url=chat.invite_link)])
         except Exception as e:
             print(f"Error fetching member: {e}")  # Log any exceptions
@@ -32,10 +37,6 @@ async def is_subscribed(bot, query, channels):
 async def start(client, message):
     if AUTH_CHANNEL:
         try:
-            # Ensure AUTH_CHANNEL is a list
-            if isinstance(AUTH_CHANNEL, str):
-                AUTH_CHANNEL = [AUTH_CHANNEL]
-                
             btn = await is_subscribed(client, message, AUTH_CHANNEL)
             if btn:
                 username = (await client.get_me()).username
