@@ -39,6 +39,7 @@ async def start(client, message):
                 username = (await client.get_me()).username
                 btn = [
                     [InlineKeyboardButton(f'Join {chat.title}', url=invite_link)],
+                    [InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/ROCKERSBACKUP")],
                     [InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/{username}?start=true")],
                 ]
                 await message.reply_text(
