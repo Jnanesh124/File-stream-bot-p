@@ -37,13 +37,11 @@ async def start(client, message):
             if not is_member and chat:
                 invite_link = chat.invite_link
                 username = (await client.get_me()).username
-                
                 btn = [
-                    [InlineKeyboardButton(f'🍁 Join bot update channel 🍁', url=invite_link)],
-                    [InlineKeyboardButton("📢 Join main Channel 📢", url="https://t.me/ROCKERSBACKUP")]  # Change the URL to your second channel
+                    [InlineKeyboardButton("🍿 main update channel 🍿", url="https://t.me/ROCKERSBACKUP")]  # Add your website link here
+                    [InlineKeyboardButton(f'Join {chat.title}', url=invite_link)],
                     [InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/{username}?start=true")],
                 ]
-                
                 await message.reply_text(
                     text=f"<b>👋 Hello {message.from_user.mention},\n\nPlease join the channel then click on try again button. 😇</b>",
                     reply_markup=InlineKeyboardMarkup(btn)
@@ -51,19 +49,16 @@ async def start(client, message):
                 return
         except Exception as e:
             print(f"Error in subscription check: {e}")
-            
+
     # Add user to database if not already existing
     if not await db.is_user_exist(message.from_user.id):
-    await db.add_user(message.from_user.id, message.from_user.first_name)
-    await client.send_message(LOG_CHANNEL, script.LOG_TEXT_P.format(message.from_user.id, message.from_user.mention))
+        await db.add_user(message.from_user.id, message.from_user.first_name)
+        await client.send_message(LOG_CHANNEL, script.LOG_TEXT_P.format(message.from_user.id, message.from_user.mention))
 
-    # Create the buttons
-    rm = InlineKeyboardMarkup([
-        [InlineKeyboardButton("✨ Update Channel", url="https://t.me/vj_botz")],
-        [InlineKeyboardButton("🔗 Visit Our Website", url="https://yourwebsite.com")],
-        [InlineKeyboardButton("📞 Contact Support", url="https://t.me/support_username")]
-    ])
-
+    rm = InlineKeyboardMarkup([[InlineKeyboardButton("🍿main Update Channel 🍿", url="https://t.me/ROCKERSBACKUP"),
+                                InlineKeyboardButton("more bots", url="https://t.me/Rockers_Bots"),
+                               ]])
+    
     await client.send_message(
         chat_id=message.from_user.id,
         text=script.START_TXT.format(message.from_user.mention, temp.U_NAME, temp.B_NAME),
