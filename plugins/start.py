@@ -14,50 +14,48 @@ from utils import temp, get_shortlink
 async def is_subscribed(bot, user_id, channels):
     for channel_id in channels:
         try:
+            chat = await bot.get_chat(channel_id)
             member = await bot.get_chat_member(channel_id, user_id)
+            print(f"Checked membership for {chat.title}: Status = {member.status}")  # Log the status
+            
             if member.status in ['member', 'administrator', 'creator']:
                 continue
-            else:
-                chat = await bot.get_chat(channel_id)
-                print(f"User is NOT a member of {chat.title}")
-                return False, chat.invite_link
         except UserNotParticipant:
-            chat = await bot.get_chat(channel_id)
-            print(f"User is not a participant in {chat.title}")
-            return False, chat.invite_link
+            print(f"User {user_id} is not a participant in {channel_id}")  # Log if not a participant
+            return False, chat  # Return the chat object for the invite link
         except Exception as e:
-            print(f"Error fetching member: {e}")
+            print(f"Error checking membership for {channel_id}: {e}")
             return False, None
-    return True, None
+            
+    return True, None  # Return True if user is a member of all channels
 
 @Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
-    user_id = message.from_user.id
-    
-    print(f"User {user_id} started the bot.")  # Debugging line
-
     if AUTH_CHANNEL:
-        is_subscribed_status, invite_link = await is_subscribed(client, user_id, AUTH_CHANNEL)
-
-        if not is_subscribed_status:
-            username = (await client.get_me()).username
-            btn = [[InlineKeyboardButton(f'Join {invite_link}', url=invite_link)],
-                   [InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/{username}?start=true")]]
-            await message.reply_text(
-                text=f"<b>👋 Hello {message.from_user.mention},\n\nPlease join the channel then click on the try again button. 😇</b>",
-                reply_markup=InlineKeyboardMarkup(btn)
-            )
-            return
+        try:
+            is_member, chat = await is_subscribed(client, message.from_user.id, AUTH_CHANNEL)
+            if not is_member and chat:
+                invite_link = chat.invite_link
+                username = (await client.get_me()).username
+                btn = [[InlineKeyboardButton(f'Join {chat.title}', url=invite_link)]]
+                btn.append([InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/{username}?start=true")])
+                await message.reply_text(
+                    text=f"<b>👋 Hello {message.from_user.mention},\n\nPlease join the channel then click on try again button. 😇</b>",
+                    reply_markup=InlineKeyboardMarkup(btn)
+                )
+                return
+        except Exception as e:
+            print(f"Error in subscription check: {e}")
 
     # Add user to database if not already existing
-    if not await db.is_user_exist(user_id):
-        await db.add_user(user_id, message.from_user.first_name)
-        await client.send_message(LOG_CHANNEL, script.LOG_TEXT_P.format(user_id, message.from_user.mention))
+    if not await db.is_user_exist(message.from_user.id):
+        await db.add_user(message.from_user.id, message.from_user.first_name)
+        await client.send_message(LOG_CHANNEL, script.LOG_TEXT_P.format(message.from_user.id, message.from_user.mention))
 
     rm = InlineKeyboardMarkup([[InlineKeyboardButton("✨ Update Channel", url="https://t.me/vj_botz")]])
     
     await client.send_message(
-        chat_id=user_id,
+        chat_id=message.from_user.id,
         text=script.START_TXT.format(message.from_user.mention, temp.U_NAME, temp.B_NAME),
         reply_markup=rm,
         parse_mode=enums.ParseMode.HTML
@@ -89,17 +87,19 @@ async def stream_start(client, message):
         text=f"•• ʟɪɴᴋ ɢᴇɴᴇʀᴀᴛᴇᴅ ꜰᴏʀ ɪᴅ #{user_id} \n•• ᴜꜱᴇʀɴᴀᴍᴇ : {username} \n\n•• ᖴᎥᒪᗴ Nᗩᗰᗴ : {fileName}",
         quote=True,
         disable_web_page_preview=True,
-        reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("🚀 Fast Download 🚀", url=download),
-             InlineKeyboardButton('🖥️ Watch online 🖥️', url=stream)]
-        ])
+        reply_markup=InlineKeyboardMarkup([[
+            InlineKeyboardButton("🚀 Fast Download 🚀", url=download),
+            InlineKeyboardButton('🖥️ Watch online 🖥️', url=stream)
+        ]])
     )
 
     rm = InlineKeyboardMarkup(
-        [[
-            InlineKeyboardButton("sᴛʀᴇᴀᴍ 🖥", url=stream),
-            InlineKeyboardButton("ᴅᴏᴡɴʟᴏᴀᴅ 📥", url=download)
-        ]]
+        [
+            [
+                InlineKeyboardButton("sᴛʀᴇᴀᴍ 🖥", url=stream),
+                InlineKeyboardButton("ᴅᴏᴡɴʟᴏᴀᴅ 📥", url=download)
+            ]
+        ]
     )
     
     msg_text = """<i><u>𝗬𝗼𝘂𝗿 𝗟𝗶𝗻𝗸 𝗚𝗲𝗻𝗲𝗿𝗮𝘁𝗲𝗱 !</u></i>\n\n<b>📂 Fɪʟᴇ ɴᴀᴍᴇ :</b> <i>{}</i>\n\n<b>📦 Fɪʟᴇ ꜱɪᴢᴇ :</b> <i>{}</i>\n\n<b>📥 Dᴏᴡɴʟᴏᴀᴅ :</b> <i>{}</i>\n\n<b> 🖥ᴡᴀᴛᴄʜ  :</b> <i>{}</i>\n\n<b>🚸 Nᴏᴛᴇ : ʟɪɴᴋ ᴡᴏɴ'ᴛ ᴇxᴘɪʀᴇ ᴛɪʟʟ ɪ ᴅᴇʟᴇᴛᴇ</b>"""
