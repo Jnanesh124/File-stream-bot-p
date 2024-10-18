@@ -4,7 +4,7 @@ from Script import script
 from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from pyrogram.errors import UserNotParticipant
-from info import URL, LOG_CHANNEL, SHORTLINK, AUTH_CHANNEL
+from info import URL, LOG_CHANNEL, SHORTLINK, AUTH_CHANNEL, SECOND_AUTH_CHANNEL
 from urllib.parse import quote_plus
 from TechVJ.util.file_properties import get_name, get_hash, get_media_file_size
 from TechVJ.util.human_readable import humanbytes
@@ -31,9 +31,10 @@ async def is_subscribed(bot, user_id, channels):
 
 @Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
-    if AUTH_CHANNEL:
+    if AUTH_CHANNEL or SECOND_AUTH_CHANNEL:
         try:
-            is_member, chat = await is_subscribed(client, message.from_user.id, AUTH_CHANNEL)
+            channels_to_check = [channel for channel in [AUTH_CHANNEL, SECOND_AUTH_CHANNEL] if channel]
+            is_member, chat = await is_subscribed(client, message.from_user.id, channels_to_check)
             if not is_member and chat:
                 invite_link = chat.invite_link
                 username = (await client.get_me()).username
