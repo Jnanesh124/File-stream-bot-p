@@ -17,7 +17,7 @@ async def is_subscribed(bot, query, channels):
         try:
             chat = await bot.get_chat(int(channel_id))
             member = await bot.get_chat_member(channel_id, query.from_user.id)
-            if member.status == 'left':
+            if member.status in ['left', 'kicked']:
                 btn.append([InlineKeyboardButton(f'Join {chat.title}', url=chat.invite_link)])
         except UserNotParticipant:
             btn.append([InlineKeyboardButton(f'Join {chat.title}', url=chat.invite_link)])
@@ -48,6 +48,7 @@ async def start(client, message):
         except Exception as e:
             print(f"Error in subscription check: {e}")
 
+    # Add user to database if not already existing
     if not await db.is_user_exist(message.from_user.id):
         await db.add_user(message.from_user.id, message.from_user.first_name)
         await client.send_message(LOG_CHANNEL, script.LOG_TEXT_P.format(message.from_user.id, message.from_user.mention))
