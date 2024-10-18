@@ -15,7 +15,7 @@ async def is_subscribed(bot, user_id, channels):
     for channel_id in channels:
         try:
             # Ensure channel_id is a string
-            channel_id_str = str(channel_id)
+            channel_id_str = str(channel_id).strip()
             print(f"Checking membership for channel: {channel_id_str} (Type: {type(channel_id_str)})")
             chat = await bot.get_chat(channel_id_str)
             member = await bot.get_chat_member(channel_id_str, user_id)
