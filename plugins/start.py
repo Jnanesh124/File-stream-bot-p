@@ -4,7 +4,7 @@ from Script import script
 from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from pyrogram.errors import UserNotParticipant
-from info import URL, LOG_CHANNEL, SHORTLINK, AUTH_CHANNEL, SECOND_AUTH_CHANNEL
+from info import URL, LOG_CHANNEL, SHORTLINK, AUTH_CHANNEL
 from urllib.parse import quote_plus
 from TechVJ.util.file_properties import get_name, get_hash, get_media_file_size
 from TechVJ.util.human_readable import humanbytes
@@ -14,36 +14,36 @@ from utils import temp, get_shortlink
 async def is_subscribed(bot, user_id, channels):
     for channel_id in channels:
         try:
-            # Ensure channel_id is a string
-            channel_id_str = str(channel_id).strip()
-            print(f"Checking membership for channel: {channel_id_str} (Type: {type(channel_id_str)})")
-            chat = await bot.get_chat(channel_id_str)
-            member = await bot.get_chat_member(channel_id_str, user_id)
-            print(f"Checked membership for {chat.title}: Status = {member.status}")  
+            chat = await bot.get_chat(channel_id)
+            member = await bot.get_chat_member(channel_id, user_id)
+            print(f"Checked membership for {chat.title}: Status = {member.status}")  # Log the status
             
             if member.status in ['member', 'administrator', 'creator']:
                 continue
         except UserNotParticipant:
-            print(f"User {user_id} is not a participant in {channel_id_str}")  
-            return False, chat  
+            print(f"User {user_id} is not a participant in {channel_id}")  # Log if not a participant
+            return False, chat  # Return the chat object for the invite link
         except Exception as e:
-            print(f"Error checking membership for {channel_id_str}: {e}")
+            print(f"Error checking membership for {channel_id}: {e}")
             return False, None
             
-    return True, None
+    return True, None  # Return True if user is a member of all channels
 
 @Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
-    channels_to_check = [channel for channel in [AUTH_CHANNEL, SECOND_AUTH_CHANNEL] if channel]
-    
-    if channels_to_check:
+    if AUTH_CHANNEL:
         try:
-            is_member, chat = await is_subscribed(client, message.from_user.id, channels_to_check)
+            is_member, chat = await is_subscribed(client, message.from_user.id, AUTH_CHANNEL)
             if not is_member and chat:
                 invite_link = chat.invite_link
                 username = (await client.get_me()).username
-                btn = [[InlineKeyboardButton(f'Join {chat.title}', url=invite_link)]]
-                btn.append([InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/{username}?start=true")])
+                
+                btn = [
+                    [InlineKeyboardButton(f'🍁 Join bot update channel 🍁', url=invite_link)],
+                    [InlineKeyboardButton("📢 Join main Channel 📢", url="https://t.me/ROCKERSBACKUP")]  # Change the URL to your second channel
+                    [InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/{username}?start=true")],
+                ]
+                
                 await message.reply_text(
                     text=f"<b>👋 Hello {message.from_user.mention},\n\nPlease join the channel then click on try again button. 😇</b>",
                     reply_markup=InlineKeyboardMarkup(btn)
@@ -51,20 +51,25 @@ async def start(client, message):
                 return
         except Exception as e:
             print(f"Error in subscription check: {e}")
-
+            
     # Add user to database if not already existing
     if not await db.is_user_exist(message.from_user.id):
-        await db.add_user(message.from_user.id, message.from_user.first_name)
-        await client.send_message(LOG_CHANNEL, script.LOG_TEXT_P.format(message.from_user.id, message.from_user.mention))
+    await db.add_user(message.from_user.id, message.from_user.first_name)
+    await client.send_message(LOG_CHANNEL, script.LOG_TEXT_P.format(message.from_user.id, message.from_user.mention))
 
-    rm = InlineKeyboardMarkup([[InlineKeyboardButton("✨ Update Channel", url="https://t.me/vj_botz")]])
-    
-    await client.send_message(
-        chat_id=message.from_user.id,
-        text=script.START_TXT.format(message.from_user.mention, temp.U_NAME, temp.B_NAME),
-        reply_markup=rm,
-        parse_mode=enums.ParseMode.HTML
-    )
+# Create the buttons
+rm = InlineKeyboardMarkup([
+    [InlineKeyboardButton("📢 Join main Channel 📢", url="https://t.me/ROCKERSBACKUP")],
+    [InlineKeyboardButton("🍁 Join bot update channel 🍁", url="https://t.me/Rockers_Bots")]
+    [InlineKeyboardButton("📍 SUBSCRIBE MY YOUTUBE CHANNEL 📍", url="https://youtube.com/@jnentertainment.?si=7N8hSi28Ehz1Lg89")]  # Change the URL to your website or another destination
+])
+
+await client.send_message(
+    chat_id=message.from_user.id,
+    text=script.START_TXT.format(message.from_user.mention, temp.U_NAME, temp.B_NAME),
+    reply_markup=rm,
+    parse_mode=enums.ParseMode.HTML
+)
 
 @Client.on_message(filters.private & (filters.document | filters.video))
 async def stream_start(client, message):
