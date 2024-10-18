@@ -38,12 +38,12 @@ async def start(client, message):
                 invite_link = chat.invite_link
                 username = (await client.get_me()).username
                 btn = [
+                    [InlineKeyboardButton(" 🍁 More Bots Channel 🍁", url=f"https://t.me/Rockers_Bots")],
                     [InlineKeyboardButton(f'Join {chat.title}', url=invite_link)],
-                    [InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/ROCKERSBACKUP")],
                     [InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/{username}?start=true")],
                 ]
                 await message.reply_text(
-                    text=f"<b>👋 Hello {message.from_user.mention},\n\nPlease join the channel then click on try again button. 😇</b>",
+                    text=f"<b>👋 Hello {message.from_user.mention},\n\nPlease join the Below 2 channel then click on try again button. 😇</b>",
                     reply_markup=InlineKeyboardMarkup(btn)
                 )
                 return
