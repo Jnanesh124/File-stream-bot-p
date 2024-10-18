@@ -14,9 +14,12 @@ from utils import temp, get_shortlink
 async def is_subscribed(bot, query, channels):
     btn = []
     for channel_id in channels:
+        print(f"Checking subscription for channel: {channel_id}")  # Debugging line
         try:
             chat = await bot.get_chat(int(channel_id))
             member = await bot.get_chat_member(channel_id, query.from_user.id)
+            print(f"User status in {chat.title}: {member.status}")  # Debugging line
+            
             if member.status in ['left', 'kicked']:
                 btn.append([InlineKeyboardButton(f'Join {chat.title}', url=chat.invite_link)])
         except UserNotParticipant:
