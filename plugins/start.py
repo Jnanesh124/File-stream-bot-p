@@ -57,18 +57,19 @@ async def start(client, message):
     await db.add_user(message.from_user.id, message.from_user.first_name)
     await client.send_message(LOG_CHANNEL, script.LOG_TEXT_P.format(message.from_user.id, message.from_user.mention))
 
-# Create the buttons
-rm = InlineKeyboardMarkup([
-    [InlineKeyboardButton("📢 Join main Channel 📢", url="https://t.me/ROCKERSBACKUP")],
-    [InlineKeyboardButton("🍁 Join bot update channel 🍁", url="https://t.me/Rockers_Bots")],  # Change the URL as needed
-])
+    # Create the buttons
+    rm = InlineKeyboardMarkup([
+        [InlineKeyboardButton("✨ Update Channel", url="https://t.me/vj_botz")],
+        [InlineKeyboardButton("🔗 Visit Our Website", url="https://yourwebsite.com")],
+        [InlineKeyboardButton("📞 Contact Support", url="https://t.me/support_username")]
+    ])
 
-await client.send_message(
-    chat_id=message.from_user.id,
-    text=script.START_TXT.format(message.from_user.mention, temp.U_NAME, temp.B_NAME),
-    reply_markup=rm,
-    parse_mode=enums.ParseMode.HTML
-)
+    await client.send_message(
+        chat_id=message.from_user.id,
+        text=script.START_TXT.format(message.from_user.mention, temp.U_NAME, temp.B_NAME),
+        reply_markup=rm,
+        parse_mode=enums.ParseMode.HTML
+    )
 
 @Client.on_message(filters.private & (filters.document | filters.video))
 async def stream_start(client, message):
