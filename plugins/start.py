@@ -4,43 +4,43 @@ from Script import script
 from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from pyrogram.errors import UserNotParticipant
-from info import URL, LOG_CHANNEL, SHORTLINK, AUTH_CHANNEL
+from info import URL, LOG_CHANNEL, SHORTLINK, AUTH_CHANNEL, SECOND_AUTH_CHANNEL
 from urllib.parse import quote_plus
 from TechVJ.util.file_properties import get_name, get_hash, get_media_file_size
 from TechVJ.util.human_readable import humanbytes
 from database.users_chats_db import db
 from utils import temp, get_shortlink
 
-async def is_subscribed(bot, user_id, channels):
+async def is_subscribed(bot, query, channels):
+    btn = []
     for channel_id in channels:
         try:
-            chat = await bot.get_chat(channel_id)
-            member = await bot.get_chat_member(channel_id, user_id)
-            print(f"Checked membership for {chat.title}: Status = {member.status}")  # Log the status
-            
+            chat = await bot.get_chat(int(channel_id))
+            member = await bot.get_chat_member(channel_id, query.from_user.id)
+
             if member.status in ['member', 'administrator', 'creator']:
                 continue
+            else:
+                btn.append([InlineKeyboardButton(f'Join {chat.title}', url=chat.invite_link)])
         except UserNotParticipant:
-            print(f"User {user_id} is not a participant in {channel_id}")  # Log if not a participant
-            return False, chat  # Return the chat object for the invite link
+            btn.append([InlineKeyboardButton(f'Join {chat.title}', url=chat.invite_link)])
         except Exception as e:
-            print(f"Error checking membership for {channel_id}: {e}")
-            return False, None
-            
-    return True, None  # Return True if user is a member of all channels
+            print(f"Error fetching member: {e}")
+    return btn
 
 @Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
-    if AUTH_CHANNEL:
+    if AUTH_CHANNEL or SECOND_AUTH_CHANNEL:
         try:
-            is_member, chat = await is_subscribed(client, message.from_user.id, AUTH_CHANNEL)
-            if not is_member and chat:
-                invite_link = chat.invite_link
+            btn = await is_subscribed(client, message, AUTH_CHANNEL + SECOND_AUTH_CHANNEL)
+            if btn:
                 username = (await client.get_me()).username
-                btn = [[InlineKeyboardButton(f'Join {chat.title}', url=invite_link)]]
-                btn.append([InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/{username}?start=true")])
+                if len(message.command) > 1 and message.command[1]:
+                    btn.append([InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/{username}?start={message.command[1]}")])
+                else:
+                    btn.append([InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/{username}?start=true")])
                 await message.reply_text(
-                    text=f"<b>👋 Hello {message.from_user.mention},\n\nPlease join the channel then click on try again button. 😇</b>",
+                    text=f"<b>👋 Hello {message.from_user.mention},\n\nPlease join both channels then click on the try again button. 😇</b>",
                     reply_markup=InlineKeyboardMarkup(btn)
                 )
                 return
