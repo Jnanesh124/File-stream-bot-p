@@ -38,7 +38,6 @@ async def start(client, message):
                 invite_link = chat.invite_link
                 username = (await client.get_me()).username
                 btn = [
-                    [InlineKeyboardButton("🍿 main update channel 🍿", url="https://t.me/ROCKERSBACKUP")]  # Add your website link here
                     [InlineKeyboardButton(f'Join {chat.title}', url=invite_link)],
                     [InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/{username}?start=true")],
                 ]
