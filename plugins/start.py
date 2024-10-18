@@ -19,18 +19,23 @@ async def is_subscribed(bot, user_id, channels):
                 continue
             else:
                 chat = await bot.get_chat(channel_id)
+                print(f"User is NOT a member of {chat.title}")
                 return False, chat.invite_link
         except UserNotParticipant:
             chat = await bot.get_chat(channel_id)
+            print(f"User is not a participant in {chat.title}")
             return False, chat.invite_link
         except Exception as e:
             print(f"Error fetching member: {e}")
+            return False, None
     return True, None
 
 @Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
     user_id = message.from_user.id
     
+    print(f"User {user_id} started the bot.")  # Debugging line
+
     if AUTH_CHANNEL:
         is_subscribed_status, invite_link = await is_subscribed(client, user_id, AUTH_CHANNEL)
 
