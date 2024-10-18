@@ -14,26 +14,30 @@ from utils import temp, get_shortlink
 async def is_subscribed(bot, user_id, channels):
     for channel_id in channels:
         try:
-            chat = await bot.get_chat(channel_id)
-            member = await bot.get_chat_member(channel_id, user_id)
-            print(f"Checked membership for {chat.title}: Status = {member.status}")  # Log the status
+            # Ensure channel_id is a string
+            channel_id_str = str(channel_id)
+            print(f"Checking membership for channel: {channel_id_str} (Type: {type(channel_id_str)})")
+            chat = await bot.get_chat(channel_id_str)
+            member = await bot.get_chat_member(channel_id_str, user_id)
+            print(f"Checked membership for {chat.title}: Status = {member.status}")  
             
             if member.status in ['member', 'administrator', 'creator']:
                 continue
         except UserNotParticipant:
-            print(f"User {user_id} is not a participant in {channel_id}")  # Log if not a participant
-            return False, chat  # Return the chat object for the invite link
+            print(f"User {user_id} is not a participant in {channel_id_str}")  
+            return False, chat  
         except Exception as e:
-            print(f"Error checking membership for {channel_id}: {e}")
+            print(f"Error checking membership for {channel_id_str}: {e}")
             return False, None
             
-    return True, None  # Return True if user is a member of all channels
+    return True, None
 
 @Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
-    if AUTH_CHANNEL or SECOND_AUTH_CHANNEL:
+    channels_to_check = [channel for channel in [AUTH_CHANNEL, SECOND_AUTH_CHANNEL] if channel]
+    
+    if channels_to_check:
         try:
-            channels_to_check = [channel for channel in [AUTH_CHANNEL, SECOND_AUTH_CHANNEL] if channel]
             is_member, chat = await is_subscribed(client, message.from_user.id, channels_to_check)
             if not is_member and chat:
                 invite_link = chat.invite_link
