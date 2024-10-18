@@ -22,10 +22,12 @@ async def is_subscribed(bot, user_id, channels):
                 continue
             else:
                 btn.append([InlineKeyboardButton(f'Join {chat.title}', url=chat.invite_link)])
+                print(f"User {user_id} is not a member of {chat.title}.")
         except UserNotParticipant:
             btn.append([InlineKeyboardButton(f'Join {chat.title}', url=chat.invite_link)])
+            print(f"User {user_id} is not a participant of {chat.title}.")
         except Exception as e:
-            print(f"Error fetching member: {e}")
+            print(f"Error fetching member for {channel_id}: {e}")
     return btn
 
 @Client.on_message(filters.command("start") & filters.private)
@@ -44,8 +46,10 @@ async def start(client, message):
                     reply_markup=InlineKeyboardMarkup(btn)
                 )
                 return
+            else:
+                print(f"User {user_id} is subscribed to all channels.")
         except Exception as e:
-            print(f"Error in subscription check: {e}")
+            print(f"Error in subscription check for user {user_id}: {e}")
 
     # Add user to database if not already existing
     if not await db.is_user_exist(user_id):
