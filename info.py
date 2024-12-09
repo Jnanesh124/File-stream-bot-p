@@ -24,7 +24,7 @@ SLEEP_THRESHOLD = int(environ.get('SLEEP_THRESHOLD', '60'))
 PING_INTERVAL = int(environ.get("PING_INTERVAL", "1200"))  # 20 minutes
 ON_HEROKU = 'DYNO' in environ
 
-URL = environ.get("URL", "https://filetostream2-bee725246d3b.herokuapp.com/")
+URL = environ.get("URL", "https://streembot-009a426ab9b2.herokuapp.com/")
 
 # Admins, Channels & Users
 LOG_CHANNEL = int(environ.get('LOG_CHANNEL', '-1002225559950'))
