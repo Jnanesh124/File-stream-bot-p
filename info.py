@@ -4,7 +4,7 @@ from os import environ
 id_pattern = re.compile(r'^.\d+$')
 
 # Ensure AUTH_CHANNEL and SECOND_AUTH_CHANNEL are set correctly
-AUTH_CHANNEL = [int(ch) if id_pattern.search(ch) else ch for ch in environ.get('AUTH_CHANNEL', '-1002147557168').split()]
+AUTH_CHANNEL = [int(ch) if id_pattern.search(ch) else ch for ch in environ.get('AUTH_CHANNEL', '-1001764441595').split()]
 SECOND_AUTH_CHANNEL = [int(ch) if id_pattern.search(ch) else ch for ch in environ.get('SECOND_AUTH_CHANNEL', '-1002135593873').split()]  # Replace with your second channel ID
 print(f"AUTH_CHANNEL IDs: {AUTH_CHANNEL}")  # Debugging line
 print(f"SECOND_AUTH_CHANNEL IDs: {SECOND_AUTH_CHANNEL}")  # Debugging line
