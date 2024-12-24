@@ -55,8 +55,8 @@ async def start(client, message):
         await db.add_user(message.from_user.id, message.from_user.first_name)
         await client.send_message(LOG_CHANNEL, script.LOG_TEXT_P.format(message.from_user.id, message.from_user.mention))
 
-    rm = InlineKeyboardMarkup([[InlineKeyboardButton("🍿main Update Channel 🍿", url="https://t.me/ROCKERSBACKUP"),
-                                InlineKeyboardButton("more bots", url="https://t.me/Rockers_Bots"),
+    rm = InlineKeyboardMarkup([[InlineKeyboardButton("🍿main Update Channel 🍿", url="https://t.me/JN2FLIX"),
+                                InlineKeyboardButton("more bots", url="https://t.me/ROCKERSBACKUP"),
                                ]])
     
     await client.send_message(
@@ -106,7 +106,7 @@ async def stream_start(client, message):
         ]
     )
     
-    msg_text = """<strong>𝗬𝗼𝘂𝗿 𝗟𝗶𝗻𝗸 𝗚𝗲𝗻𝗲𝗿𝗮𝘁𝗲𝗱 by : @ROCKERSBACKUP @Rockers_Bots</strong>\n\n<strong>📂 Fɪʟᴇ ɴᴀᴍᴇ :</strong> <b>{}</b>\n\n<strong>📦 Fɪʟᴇ ꜱɪᴢᴇ :</strong> <b>{}</b>"""
+    msg_text = """<strong>📂 Fɪʟᴇ ɴᴀᴍᴇ :</strong> <b>{}</b>\n\n<strong>📦 Fɪʟᴇ ꜱɪᴢᴇ :</strong> <b>{}</b>"""
 
     await message.reply_text(
         text=msg_text.format(get_name(log_msg), humanbytes(get_media_file_size(message)), download, stream),
