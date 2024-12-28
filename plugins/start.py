@@ -39,11 +39,10 @@ async def start(client, message):
                 username = (await client.get_me()).username
                 btn = [
                     [InlineKeyboardButton(f'Join {chat.title}', url=invite_link)],
-                    [InlineKeyboardButton("🍁MAIN UPDATE CHANNEL🍁", url=f"https://t.me/ROCKERSBACKUP")],
                     [InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/{username}?start=true")],
                 ]
                 await message.reply_text(
-                    text=f"<b>👋 Hello {message.from_user.mention},\n\nPlease join the Below 2 channel then click on try again button. 😇</b>",
+                    text=f"<b>👋 Hello {message.from_user.mention},\n\nPlease join the Below channel then click on try again button. 😇</b>",
                     reply_markup=InlineKeyboardMarkup(btn)
                 )
                 return
@@ -55,8 +54,8 @@ async def start(client, message):
         await db.add_user(message.from_user.id, message.from_user.first_name)
         await client.send_message(LOG_CHANNEL, script.LOG_TEXT_P.format(message.from_user.id, message.from_user.mention))
 
-    rm = InlineKeyboardMarkup([[InlineKeyboardButton("🍿main Update Channel 🍿", url="https://t.me/JN2FLIX"),
-                                InlineKeyboardButton("more bots", url="https://t.me/ROCKERSBACKUP"),
+    rm = InlineKeyboardMarkup([[InlineKeyboardButton("🍿 MAIN CHANNEL 🍿", url="https://t.me/JN2FLIX"),
+                                InlineKeyboardButton("🤖 BOTS CHANNEL 🤖 ", url="https://t.me/ROCKERSBACKUP"),
                                ]])
     
     await client.send_message(
