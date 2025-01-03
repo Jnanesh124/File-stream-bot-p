@@ -40,7 +40,7 @@ async def stream_start(client, message):
             print(f"Thumbnail downloaded to {thumbnail_path}")  # Debugging log
 
         # Generate links
-        fileName = quote_plus(get_name(log_msg))
+        fileName = quote_plus(filename)  # Use the filename directly here
         if not SHORTLINK:
             stream = f"{URL}watch/{log_msg.id}/{fileName}?hash={get_hash(log_msg)}"
             download = f"{URL}{log_msg.id}/{fileName}?hash={get_hash(log_msg)}"
