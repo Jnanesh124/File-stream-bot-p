@@ -74,13 +74,20 @@ async def stream_start(client, message):
     filesize = humanize.naturalsize(file.file_size) 
     fileid = file.file_id
     user_id = message.from_user.id
-    username = message.from_user.mention 
+    username = message.from_user.mention
 
+    # Initialize variables for thumbnail and download
+    thumbnail_path = None
     log_msg = await client.send_cached_media(
         chat_id=LOG_CHANNEL,
         file_id=fileid,
     )
-    
+
+    # Check for the thumbnail
+    if file.thumbs:
+        thumbnail = file.thumbs[0].file_id
+        thumbnail_path = await client.download_media(thumbnail)
+
     fileName = quote_plus(get_name(log_msg))
     if not SHORTLINK:
         stream = f"{URL}watch/{log_msg.id}/{fileName}?hash={get_hash(log_msg)}"
@@ -89,22 +96,39 @@ async def stream_start(client, message):
         stream = await get_shortlink(f"{URL}watch/{log_msg.id}/{fileName}?hash={get_hash(log_msg)}")
         download = await get_shortlink(f"{URL}{log_msg.id}/{fileName}?hash={get_hash(log_msg)}")
         
-    # Respond to the user with the generated links
+    # Prepare the message to send
     try:
-        # Send the file info and links to the user's PM
-        await client.send_message(
-            chat_id=user_id,
-            text=f"•• ʟɪɴᴋ ɢᴇɴᴇʀᴀᴛᴇᴅ ꜰᴏʀ ɪᴅ #{user_id} \n•• ᴜꜱᴇʀɴᴀᴍᴇ : {username} \n\n•• ᖴᎥᒪᗴ Nᗩᗰᗴ : {filename}",
-            reply_markup=InlineKeyboardMarkup([[
-                InlineKeyboardButton("🚀 Fast Download 🚀", url=download),
-                InlineKeyboardButton('🖥️ Watch online 🖥️', url=stream)
-            ]])
-        )
+        if thumbnail_path:
+            # Send the message with the thumbnail if it exists
+            await client.send_photo(
+                chat_id=user_id,
+                photo=thumbnail_path,
+                caption=f"""•• ʟɪɴᴋ ɢᴇɴᴇʀᴀᴛᴇᴅ ꜰᴏʀ ɪᴅ #{user_id} 
+                            \n•• ᴜꜱᴇʀɴᴀᴍᴇ : {username} 
+                            \n\n•• ᖴᎥᒪᗴ Nᗩᗰᗴ : {filename}""",
+                reply_markup=InlineKeyboardMarkup([[
+                    InlineKeyboardButton("🚀 Fast Download 🚀", url=download),
+                    InlineKeyboardButton('🖥️ Watch online 🖥️', url=stream)
+                ]])
+            )
+        else:
+            # Send the message without the thumbnail if it doesn't exist
+            await client.send_message(
+                chat_id=user_id,
+                text=f"""•• ʟɪɴᴋ ɢᴇɴᴇʀᴀᴛᴇᴅ ꜰᴏʀ ɪᴅ #{user_id} 
+                        \n•• ᴜꜱᴇʀɴᴀᴍᴇ : {username} 
+                        \n\n•• ᖴᎥᒪᗴ Nᗩᗰᗴ : {filename}""",
+                reply_markup=InlineKeyboardMarkup([[
+                    InlineKeyboardButton("🚀 Fast Download 🚀", url=download),
+                    InlineKeyboardButton('🖥️ Watch online 🖥️', url=stream)
+                ]])
+            )
 
         # Additional message with file info
         await client.send_message(
             chat_id=user_id,
-            text=f"""<strong>📂 Fɪʟᴇ ɴᴀᴍᴇ :</strong> <b>{filename}</b>\n\n<strong>📦 Fɪʟᴇ ꜱɪᴢᴇ :</strong> <b>{filesize}</b>""",
+            text=f"""<strong>📂 Fɪʟᴇ ɴᴀᴍᴇ :</strong> <b>{filename}</b>
+                    \n\n<strong>📦 Fɪʟᴇ ꜱɪᴢᴇ :</strong> <b>{filesize}</b>""",
             reply_markup=InlineKeyboardMarkup([[
                 InlineKeyboardButton("👀 𝐰𝐚𝐭𝐜𝐡 𝐨𝐧𝐥𝐢𝐧𝐞 | 𝐃𝐨𝐰𝐧𝐥𝐨𝐚𝐝 𝐅𝐢𝐥𝐞 📥", url=stream),
             ]]),
@@ -113,3 +137,8 @@ async def stream_start(client, message):
 
     except Exception as e:
         print(f"Error sending response to user: {e}")
+
+    # Clean up the thumbnail if it was downloaded
+    if thumbnail_path:
+        os.remove(thumbnail_path)
+
