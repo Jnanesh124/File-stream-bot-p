@@ -1,100 +1,70 @@
-import os
+import random
 import humanize
-import hashlib
+from Script import script
 from pyrogram import Client, filters, enums
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from pyrogram.errors import UserNotParticipant
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ForceReply, CallbackQuery
+from info import URL, LOG_CHANNEL, SHORTLINK
 from urllib.parse import quote_plus
+from TechVJ.util.file_properties import get_name, get_hash, get_media_file_size
 from TechVJ.util.human_readable import humanbytes
 from database.users_chats_db import db
 from utils import temp, get_shortlink
-from info import URL, LOG_CHANNEL, SHORTLINK
 
-# Define get_hash function
-def get_hash(log_msg_id, filename):
-    """
-    Generate a consistent hash using both the log_msg_id and filename.
-    This ensures the hash is unique and can be validated correctly.
-    """
-    # Ensure the filename is URL-encoded before generating the hash
-    filename_encoded = quote_plus(filename)
-    return hashlib.md5(f"{log_msg_id}{filename_encoded}".encode()).hexdigest()
+@Client.on_message(filters.command("start") & filters.incoming)
+async def start(client, message):
+    if not await db.is_user_exist(message.from_user.id):
+        await db.add_user(message.from_user.id, message.from_user.first_name)
+        await client.send_message(LOG_CHANNEL, script.LOG_TEXT_P.format(message.from_user.id, message.from_user.mention))
+    rm = InlineKeyboardMarkup(
+        [[
+            InlineKeyboardButton("✨ Update Channel", url="https://t.me/vj_botz")
+        ]] 
+    )
+    await client.send_message(
+        chat_id=message.from_user.id,
+        text=script.START_TXT.format(message.from_user.mention, temp.U_NAME, temp.B_NAME),
+        reply_markup=rm,
+        parse_mode=enums.ParseMode.HTML
+    )
+    return
+
 
 @Client.on_message(filters.private & (filters.document | filters.video))
 async def stream_start(client, message):
-    try:
-        # Get file details
-        file = getattr(message, message.media.value)
-        filename = file.file_name
-        filesize = humanize.naturalsize(file.file_size)
-        fileid = file.file_id
-        user_id = message.from_user.id
-        username = message.from_user.mention
+    file = getattr(message, message.media.value)
+    filename = file.file_name
+    filesize = humanize.naturalsize(file.file_size) 
+    fileid = file.file_id
+    user_id = message.from_user.id
+    username =  message.from_user.mention 
 
-        # Send the "Please wait, generating links..." message
-        wait_msg = await client.send_message(
-            chat_id=user_id,
-            text="Please wait, generating links...",
-        )
+    log_msg = await client.send_cached_media(
+        chat_id=LOG_CHANNEL,
+        file_id=fileid,
+    )
+    fileName = {quote_plus(get_name(log_msg))}
+    if SHORTLINK == False:
+        stream = f"{URL}watch/{str(log_msg.id)}/{quote_plus(get_name(log_msg))}?hash={get_hash(log_msg)}"
+        download = f"{URL}{str(log_msg.id)}/{quote_plus(get_name(log_msg))}?hash={get_hash(log_msg)}"
+    else:
+        stream = await get_shortlink(f"{URL}watch/{str(log_msg.id)}/{quote_plus(get_name(log_msg))}?hash={get_hash(log_msg)}")
+        download = await get_shortlink(f"{URL}{str(log_msg.id)}/{quote_plus(get_name(log_msg))}?hash={get_hash(log_msg)}")
+        
+    await log_msg.reply_text(
+        text=f"•• ʟɪɴᴋ ɢᴇɴᴇʀᴀᴛᴇᴅ ꜰᴏʀ ɪᴅ #{user_id} \n•• ᴜꜱᴇʀɴᴀᴍᴇ : {username} \n\n•• ᖴᎥᒪᗴ Nᗩᗰᗴ : {fileName}",
+        quote=True,
+        disable_web_page_preview=True,
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🚀 Fast Download 🚀", url=download),  # we download Link
+                                            InlineKeyboardButton('🖥️ Watch online 🖥️', url=stream)]])  # web stream Link
+    )
+    rm=InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("sᴛʀᴇᴀᴍ 🖥", url=stream),
+                InlineKeyboardButton("ᴅᴏᴡɴʟᴏᴀᴅ 📥", url=download)
+            ]
+        ] 
+    )
+    msg_text = """<i><u>𝗬𝗼𝘂𝗿 𝗟𝗶𝗻𝗸 𝗚𝗲𝗻𝗲𝗿𝗮𝘁𝗲𝗱 !</u></i>\n\n<b>📂 Fɪʟᴇ ɴᴀᴍᴇ :</b> <i>{}</i>\n\n<b>📦 Fɪʟᴇ ꜱɪᴢᴇ :</b> <i>{}</i>\n\n<b>📥 Dᴏᴡɴʟᴏᴀᴅ :</b> <i>{}</i>\n\n<b> 🖥ᴡᴀᴛᴄʜ  :</b> <i>{}</i>\n\n<b>🚸 Nᴏᴛᴇ : ʟɪɴᴋ ᴡᴏɴ'ᴛ ᴇxᴘɪʀᴇ ᴛɪʟʟ ɪ ᴅᴇʟᴇᴛᴇ</b>"""
 
-        # Initialize variables for thumbnail and download
-        thumbnail_path = None
-        log_msg = await client.send_cached_media(
-            chat_id=LOG_CHANNEL,
-            file_id=fileid,
-        )
-
-        # Check for the thumbnail
-        if file.thumbs:
-            thumbnail = file.thumbs[0].file_id
-            thumbnail_path = await client.download_media(thumbnail)
-            print(f"Thumbnail downloaded to {thumbnail_path}")  # Debugging log
-
-        # URL encode the filename to handle special characters
-        fileName = quote_plus(filename)  # URL encode the filename
-
-        # Generate hash for the URL based on the log_msg_id and filename
-        hash_value = get_hash(log_msg.id, filename)
-
-        # Generate the URLs
-        if not SHORTLINK:
-            stream = f"{URL}watch/{log_msg.id}/{fileName}?hash={hash_value}"
-            download = f"{URL}{log_msg.id}/{fileName}?hash={hash_value}"
-        else:
-            stream = await get_shortlink(f"{URL}watch/{log_msg.id}/{fileName}?hash={hash_value}")
-            download = await get_shortlink(f"{URL}{log_msg.id}/{fileName}?hash={hash_value}")
-
-        # Send the response with the thumbnail and links
-        if thumbnail_path:
-            await client.send_photo(
-                chat_id=user_id,
-                photo=thumbnail_path,
-                caption=f"""<strong>📂 Fɪʟᴇ ɴᴀᴍᴇ :</strong> <b>{filename}</b>
-                        \n\n<strong>📦 Fɪʟᴇ ꜱɪᴢᴇ :</strong> <b>{filesize}</b>
-                        \n\n<strong>🚀 Download Link:</strong> {download}
-                        \n\n<strong>🖥️ Watch Online Link:</strong> {stream}""",
-                parse_mode=enums.ParseMode.HTML
-            )
-            print(f"Sent file with thumbnail: {thumbnail_path}")  # Debugging log
-        else:
-            await client.send_message(
-                chat_id=user_id,
-                text=f"""<strong>📂 Fɪʟᴇ ɴᴀᴍᴇ :</strong> <b>{filename}</b>
-                        \n\n<strong>📦 Fɪʟᴇ ꜱɪᴢᴇ :</strong> <b>{filesize}</b>
-                        \n\n<strong>🚀 Download Link:</strong> {download}
-                        \n\n<strong>🖥️ Watch Online Link:</strong> {stream}""",
-                parse_mode=enums.ParseMode.HTML
-            )
-            print(f"Sent file without thumbnail")  # Debugging log
-
-        # Delete the "Please wait" message
-        await wait_msg.delete()
-        print("Deleted 'Please wait' message")  # Debugging log
-
-        # Clean up the thumbnail if it was downloaded
-        if thumbnail_path:
-            os.remove(thumbnail_path)
-            print(f"Deleted thumbnail: {thumbnail_path}")  # Debugging log
-
-    except Exception as e:
-        print(f"Error processing message: {e}")
+    await message.reply_text(text=msg_text.format(get_name(log_msg), humanbytes(get_media_file_size(message)), download, stream), quote=True, disable_web_page_preview=True, reply_markup=rm)
