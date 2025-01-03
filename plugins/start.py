@@ -47,12 +47,14 @@ async def stream_start(client, message):
 
         # Generate links
         fileName = quote_plus(filename)  # Use the filename directly here
-        if not SHORTLINK:
-            stream = f"{URL}watch/{log_msg.id}/{fileName}?hash={get_hash(log_msg)}"
-            download = f"{URL}{log_msg.id}/{fileName}?hash={get_hash(log_msg)}"
-        else:
-            stream = await get_shortlink(f"{URL}watch/{log_msg.id}/{fileName}?hash={get_hash(log_msg)}")
-            download = await get_shortlink(f"{URL}{log_msg.id}/{fileName}?hash={get_hash(log_msg)}")
+        file_hash = get_hash(log_msg)  # Get the hash once and reuse it
+        stream_url = f"{URL}watch/{log_msg.id}/{fileName}?hash={file_hash}"
+        download_url = f"{URL}{log_msg.id}/{fileName}?hash={file_hash}"
+
+        # Use shortlink if available
+        if SHORTLINK:
+            stream_url = await get_shortlink(stream_url)
+            download_url = await get_shortlink(download_url)
 
         # Send the response with the thumbnail and links
         if thumbnail_path:
@@ -61,8 +63,8 @@ async def stream_start(client, message):
                 photo=thumbnail_path,
                 caption=f"""<strong>📂 Fɪʟᴇ ɴᴀᴍᴇ :</strong> <b>{filename}</b>
                         \n\n<strong>📦 Fɪʟᴇ ꜱɪᴢᴇ :</strong> <b>{filesize}</b>
-                        \n\n<strong>🚀 Download Link:</strong> {download}
-                        \n\n<strong>🖥️ Watch Online Link:</strong> {stream}""",
+                        \n\n<strong>🚀 Download Link:</strong> {download_url}
+                        \n\n<strong>🖥️ Watch Online Link:</strong> {stream_url}""",
                 parse_mode=enums.ParseMode.HTML
             )
             print(f"Sent file with thumbnail: {thumbnail_path}")  # Debugging log
@@ -71,8 +73,8 @@ async def stream_start(client, message):
                 chat_id=user_id,
                 text=f"""<strong>📂 Fɪʟᴇ ɴᴀᴍᴇ :</strong> <b>{filename}</b>
                         \n\n<strong>📦 Fɪʟᴇ ꜱɪᴢᴇ :</strong> <b>{filesize}</b>
-                        \n\n<strong>🚀 Download Link:</strong> {download}
-                        \n\n<strong>🖥️ Watch Online Link:</strong> {stream}""",
+                        \n\n<strong>🚀 Download Link:</strong> {download_url}
+                        \n\n<strong>🖥️ Watch Online Link:</strong> {stream_url}""",
                 parse_mode=enums.ParseMode.HTML
             )
             print(f"Sent file without thumbnail")  # Debugging log
