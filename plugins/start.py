@@ -1,5 +1,6 @@
 import os
 import humanize
+import hashlib
 from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from pyrogram.errors import UserNotParticipant
@@ -8,6 +9,11 @@ from TechVJ.util.human_readable import humanbytes
 from database.users_chats_db import db
 from utils import temp, get_shortlink
 from info import URL, LOG_CHANNEL, SHORTLINK
+
+# Define get_hash function
+def get_hash(log_msg):
+    # Generate a hash based on the file ID or any other identifier
+    return hashlib.md5(str(log_msg.id).encode()).hexdigest()
 
 @Client.on_message(filters.private & (filters.document | filters.video))
 async def stream_start(client, message):
