@@ -1,3 +1,4 @@
+import os
 import random
 import humanize
 from Script import script
@@ -66,19 +67,23 @@ async def stream_start(client, message):
 
     # Send the message with the thumbnail if available
     if thumbnail_path:
-        await message.reply_photo(
-            photo=thumbnail_path,
-            caption=msg_text.format(get_name(log_msg), humanbytes(get_media_file_size(message)), download, stream),
-            quote=True,
-            disable_web_page_preview=True,
-            reply_markup=InlineKeyboardMarkup(
-                [
-                    [InlineKeyboardButton("sᴛʀᴇᴀᴍ 🖥", url=stream),
-                     InlineKeyboardButton("ᴅᴏᴡɴʟᴏᴀᴅ 📥", url=download)]
-                ]
+        print(f"Sending thumbnail: {thumbnail_path}")  # Debugging log
+        try:
+            await message.reply_photo(
+                photo=thumbnail_path,
+                caption=msg_text.format(get_name(log_msg), humanbytes(get_media_file_size(message)), download, stream),
+                quote=True,
+                disable_web_page_preview=True,
+                reply_markup=InlineKeyboardMarkup(
+                    [
+                        [InlineKeyboardButton("sᴛʀᴇᴀᴍ 🖥", url=stream),
+                         InlineKeyboardButton("ᴅᴏᴡɴʟᴏᴀᴅ 📥", url=download)]
+                    ]
+                )
             )
-        )
-        print(f"Sent file with thumbnail: {thumbnail_path}")  # Debugging log
+            print(f"Thumbnail sent successfully: {thumbnail_path}")  # Debugging log
+        except Exception as e:
+            print(f"Error sending thumbnail: {e}")  # Error log
     else:
         # If no thumbnail, just send the message with the links
         await message.reply_text(
@@ -96,5 +101,8 @@ async def stream_start(client, message):
 
     # Clean up the thumbnail if it was downloaded
     if thumbnail_path:
-        os.remove(thumbnail_path)
-        print(f"Deleted thumbnail: {thumbnail_path}")  # Debugging log
+        try:
+            os.remove(thumbnail_path)
+            print(f"Deleted thumbnail: {thumbnail_path}")  # Debugging log
+        except Exception as e:
+            print(f"Error deleting thumbnail: {e}")  # Error log
