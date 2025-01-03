@@ -11,40 +11,43 @@ from info import URL, LOG_CHANNEL, SHORTLINK
 
 @Client.on_message(filters.private & (filters.document | filters.video))
 async def stream_start(client, message):
-    file = getattr(message, message.media.value)
-    filename = file.file_name
-    filesize = humanize.naturalsize(file.file_size)
-    fileid = file.file_id
-    user_id = message.from_user.id
-    username = message.from_user.mention
-
-    # Send the "Please wait, generating links..." message
-    wait_msg = await client.send_message(
-        chat_id=user_id,
-        text="Please wait, generating links...",
-    )
-
-    # Initialize variables for thumbnail and download
-    thumbnail_path = None
-    log_msg = await client.send_cached_media(
-        chat_id=LOG_CHANNEL,
-        file_id=fileid,
-    )
-
-    # Check for the thumbnail
-    if file.thumbs:
-        thumbnail = file.thumbs[0].file_id
-        thumbnail_path = await client.download_media(thumbnail)
-
-    fileName = quote_plus(get_name(log_msg))
-    if not SHORTLINK:
-        stream = f"{URL}watch/{log_msg.id}/{fileName}?hash={get_hash(log_msg)}"
-        download = f"{URL}{log_msg.id}/{fileName}?hash={get_hash(log_msg)}"
-    else:
-        stream = await get_shortlink(f"{URL}watch/{log_msg.id}/{fileName}?hash={get_hash(log_msg)}")
-        download = await get_shortlink(f"{URL}{log_msg.id}/{fileName}?hash={get_hash(log_msg)}")
-
     try:
+        # Get file details
+        file = getattr(message, message.media.value)
+        filename = file.file_name
+        filesize = humanize.naturalsize(file.file_size)
+        fileid = file.file_id
+        user_id = message.from_user.id
+        username = message.from_user.mention
+
+        # Send the "Please wait, generating links..." message
+        wait_msg = await client.send_message(
+            chat_id=user_id,
+            text="Please wait, generating links...",
+        )
+
+        # Initialize variables for thumbnail and download
+        thumbnail_path = None
+        log_msg = await client.send_cached_media(
+            chat_id=LOG_CHANNEL,
+            file_id=fileid,
+        )
+
+        # Check for the thumbnail
+        if file.thumbs:
+            thumbnail = file.thumbs[0].file_id
+            thumbnail_path = await client.download_media(thumbnail)
+            print(f"Thumbnail downloaded to {thumbnail_path}")  # Debugging log
+
+        # Generate links
+        fileName = quote_plus(get_name(log_msg))
+        if not SHORTLINK:
+            stream = f"{URL}watch/{log_msg.id}/{fileName}?hash={get_hash(log_msg)}"
+            download = f"{URL}{log_msg.id}/{fileName}?hash={get_hash(log_msg)}"
+        else:
+            stream = await get_shortlink(f"{URL}watch/{log_msg.id}/{fileName}?hash={get_hash(log_msg)}")
+            download = await get_shortlink(f"{URL}{log_msg.id}/{fileName}?hash={get_hash(log_msg)}")
+
         # Send the response with the thumbnail and links
         if thumbnail_path:
             await client.send_photo(
@@ -56,6 +59,7 @@ async def stream_start(client, message):
                         \n\n<strong>🖥️ Watch Online Link:</strong> {stream}""",
                 parse_mode=enums.ParseMode.HTML
             )
+            print(f"Sent file with thumbnail: {thumbnail_path}")  # Debugging log
         else:
             await client.send_message(
                 chat_id=user_id,
@@ -65,13 +69,16 @@ async def stream_start(client, message):
                         \n\n<strong>🖥️ Watch Online Link:</strong> {stream}""",
                 parse_mode=enums.ParseMode.HTML
             )
+            print(f"Sent file without thumbnail")  # Debugging log
 
         # Delete the "Please wait" message
         await wait_msg.delete()
+        print("Deleted 'Please wait' message")  # Debugging log
+
+        # Clean up the thumbnail if it was downloaded
+        if thumbnail_path:
+            os.remove(thumbnail_path)
+            print(f"Deleted thumbnail: {thumbnail_path}")  # Debugging log
 
     except Exception as e:
-        print(f"Error sending response to user: {e}")
-
-    # Clean up the thumbnail if it was downloaded
-    if thumbnail_path:
-        os.remove(thumbnail_path)
+        print(f"Error processing message: {e}")
