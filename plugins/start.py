@@ -16,7 +16,9 @@ def get_hash(log_msg_id, filename):
     Generate a consistent hash using both the log_msg_id and filename.
     This ensures the hash is unique and can be validated correctly.
     """
-    return hashlib.md5(f"{log_msg_id}{filename}".encode()).hexdigest()
+    # Ensure the filename is URL-encoded before generating the hash
+    filename_encoded = quote_plus(filename)
+    return hashlib.md5(f"{log_msg_id}{filename_encoded}".encode()).hexdigest()
 
 @Client.on_message(filters.private & (filters.document | filters.video))
 async def stream_start(client, message):
