@@ -11,9 +11,9 @@ from utils import temp, get_shortlink
 from info import URL, LOG_CHANNEL, SHORTLINK
 
 # Define get_hash function
-def get_hash(log_msg):
-    # Generate a hash based on the file ID or any other identifier
-    return hashlib.md5(str(log_msg.id).encode()).hexdigest()
+def get_hash(log_msg_id, filename):
+    # Generate a hash based on the log_msg_id and filename to ensure consistency
+    return hashlib.md5(f"{log_msg_id}{filename}".encode()).hexdigest()
 
 @Client.on_message(filters.private & (filters.document | filters.video))
 async def stream_start(client, message):
@@ -45,11 +45,11 @@ async def stream_start(client, message):
             thumbnail_path = await client.download_media(thumbnail)
             print(f"Thumbnail downloaded to {thumbnail_path}")  # Debugging log
 
-        # Generate links
-        fileName = quote_plus(filename)  # Use the filename directly here
-        hash_value = get_hash(log_msg)
-        
-        # Ensure the generated URL and hash are correct
+        # URL encode the filename to handle special characters
+        fileName = quote_plus(filename)  # URL encode the filename
+
+        # Generate links with the hash based on log_msg_id and filename
+        hash_value = get_hash(log_msg.id, filename)
         if not SHORTLINK:
             stream = f"{URL}watch/{log_msg.id}/{fileName}?hash={hash_value}"
             download = f"{URL}{log_msg.id}/{fileName}?hash={hash_value}"
