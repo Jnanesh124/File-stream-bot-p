@@ -1,80 +1,28 @@
-import random
+import os
 import humanize
-from Script import script
 from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from pyrogram.errors import UserNotParticipant
-from info import URL, LOG_CHANNEL, SHORTLINK, AUTH_CHANNEL
 from urllib.parse import quote_plus
-from TechVJ.util.file_properties import get_name, get_hash, get_media_file_size
 from TechVJ.util.human_readable import humanbytes
 from database.users_chats_db import db
 from utils import temp, get_shortlink
-import os
-import asyncio
-
-async def is_subscribed(bot, user_id, channels):
-    for channel_id in channels:
-        try:
-            chat = await bot.get_chat(channel_id)
-            member = await bot.get_chat_member(channel_id, user_id)
-            print(f"Checked membership for {chat.title}: Status = {member.status}")  # Log the status
-            
-            if member.status in ['member', 'administrator', 'creator']:
-                continue
-        except UserNotParticipant:
-            print(f"User {user_id} is not a participant in {channel_id}")  # Log if not a participant
-            return False, chat  # Return the chat object for the invite link
-        except Exception as e:
-            print(f"Error checking membership for {channel_id}: {e}")
-            return False, None
-            
-    return True, None  # Return True if user is a member of all channels
-
-@Client.on_message(filters.command("start") & filters.incoming)
-async def start(client, message):
-    if AUTH_CHANNEL:
-        try:
-            is_member, chat = await is_subscribed(client, message.from_user.id, AUTH_CHANNEL)
-            if not is_member and chat:
-                invite_link = chat.invite_link
-                username = (await client.get_me()).username
-                btn = [
-                    [InlineKeyboardButton(f'Join {chat.title}', url=invite_link)],
-                    [InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/{username}?start=true")],
-                ]
-                await message.reply_text(
-                    text=f"<b>👋 Hello {message.from_user.mention},\n\nPlease join the Below channel then click on try again button. 😇</b>",
-                    reply_markup=InlineKeyboardMarkup(btn)
-                )
-                return
-        except Exception as e:
-            print(f"Error in subscription check: {e}")
-
-    # Add user to database if not already existing
-    if not await db.is_user_exist(message.from_user.id):
-        await db.add_user(message.from_user.id, message.from_user.first_name)
-        await client.send_message(LOG_CHANNEL, script.LOG_TEXT_P.format(message.from_user.id, message.from_user.mention))
-
-    rm = InlineKeyboardMarkup([[InlineKeyboardButton("🍿 MAIN CHANNEL 🍿", url="https://t.me/JN2FLIX"),
-                                InlineKeyboardButton("🤖 BOTS CHANNEL 🤖 ", url="https://t.me/ROCKERSBACKUP"),
-                               ]])
-    
-    await client.send_message(
-        chat_id=message.from_user.id,
-        text=script.START_TXT.format(message.from_user.mention, temp.U_NAME, temp.B_NAME),
-        reply_markup=rm,
-        parse_mode=enums.ParseMode.HTML
-    )
+from info import URL, LOG_CHANNEL, SHORTLINK
 
 @Client.on_message(filters.private & (filters.document | filters.video))
 async def stream_start(client, message):
     file = getattr(message, message.media.value)
     filename = file.file_name
-    filesize = humanize.naturalsize(file.file_size) 
+    filesize = humanize.naturalsize(file.file_size)
     fileid = file.file_id
     user_id = message.from_user.id
     username = message.from_user.mention
+
+    # Send the "Please wait, generating links..." message
+    wait_msg = await client.send_message(
+        chat_id=user_id,
+        text="Please wait, generating links...",
+    )
 
     # Initialize variables for thumbnail and download
     thumbnail_path = None
@@ -95,45 +43,31 @@ async def stream_start(client, message):
     else:
         stream = await get_shortlink(f"{URL}watch/{log_msg.id}/{fileName}?hash={get_hash(log_msg)}")
         download = await get_shortlink(f"{URL}{log_msg.id}/{fileName}?hash={get_hash(log_msg)}")
-        
-    # Prepare the message to send
+
     try:
+        # Send the response with the thumbnail and links
         if thumbnail_path:
-            # Send the message with the thumbnail if it exists
             await client.send_photo(
                 chat_id=user_id,
                 photo=thumbnail_path,
-                caption=f"""•• ʟɪɴᴋ ɢᴇɴᴇʀᴀᴛᴇᴅ ꜰᴏʀ ɪᴅ #{user_id} 
-                            \n•• ᴜꜱᴇʀɴᴀᴍᴇ : {username} 
-                            \n\n•• ᖴᎥᒪᗴ Nᗩᗰᗴ : {filename}""",
-                reply_markup=InlineKeyboardMarkup([[
-                    InlineKeyboardButton("🚀 Fast Download 🚀", url=download),
-                    InlineKeyboardButton('🖥️ Watch online 🖥️', url=stream)
-                ]])
+                caption=f"""<strong>📂 Fɪʟᴇ ɴᴀᴍᴇ :</strong> <b>{filename}</b>
+                        \n\n<strong>📦 Fɪʟᴇ ꜱɪᴢᴇ :</strong> <b>{filesize}</b>
+                        \n\n<strong>🚀 Download Link:</strong> {download}
+                        \n\n<strong>🖥️ Watch Online Link:</strong> {stream}""",
+                parse_mode=enums.ParseMode.HTML
             )
         else:
-            # Send the message without the thumbnail if it doesn't exist
             await client.send_message(
                 chat_id=user_id,
-                text=f"""•• ʟɪɴᴋ ɢᴇɴᴇʀᴀᴛᴇᴅ ꜰᴏʀ ɪᴅ #{user_id} 
-                        \n•• ᴜꜱᴇʀɴᴀᴍᴇ : {username} 
-                        \n\n•• ᖴᎥᒪᗴ Nᗩᗰᗴ : {filename}""",
-                reply_markup=InlineKeyboardMarkup([[
-                    InlineKeyboardButton("🚀 Fast Download 🚀", url=download),
-                    InlineKeyboardButton('🖥️ Watch online 🖥️', url=stream)
-                ]])
+                text=f"""<strong>📂 Fɪʟᴇ ɴᴀᴍᴇ :</strong> <b>{filename}</b>
+                        \n\n<strong>📦 Fɪʟᴇ ꜱɪᴢᴇ :</strong> <b>{filesize}</b>
+                        \n\n<strong>🚀 Download Link:</strong> {download}
+                        \n\n<strong>🖥️ Watch Online Link:</strong> {stream}""",
+                parse_mode=enums.ParseMode.HTML
             )
 
-        # Additional message with file info
-        await client.send_message(
-            chat_id=user_id,
-            text=f"""<strong>📂 Fɪʟᴇ ɴᴀᴍᴇ :</strong> <b>{filename}</b>
-                    \n\n<strong>📦 Fɪʟᴇ ꜱɪᴢᴇ :</strong> <b>{filesize}</b>""",
-            reply_markup=InlineKeyboardMarkup([[
-                InlineKeyboardButton("👀 𝐰𝐚𝐭𝐜𝐡 𝐨𝐧𝐥𝐢𝐧𝐞 | 𝐃𝐨𝐰𝐧𝐥𝐨𝐚𝐝 𝐅𝐢𝐥𝐞 📥", url=stream),
-            ]]),
-            parse_mode=enums.ParseMode.HTML
-        )
+        # Delete the "Please wait" message
+        await wait_msg.delete()
 
     except Exception as e:
         print(f"Error sending response to user: {e}")
@@ -141,4 +75,3 @@ async def stream_start(client, message):
     # Clean up the thumbnail if it was downloaded
     if thumbnail_path:
         os.remove(thumbnail_path)
-
