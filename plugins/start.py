@@ -75,65 +75,71 @@ async def stream_start(client, message):
     user_id = message.from_user.id
     username = message.from_user.mention 
 
-    log_msg = await client.send_cached_media(
-        chat_id=LOG_CHANNEL,
-        file_id=fileid,
-    )
-    
-    # Check for thumbnail and download if available
-    thumbnail_path = None
-    if message.video and message.video.thumbs:
-        thumbnail = message.video.thumbs[0].file_id
-        thumbnail_path = await client.download_media(thumbnail)
-    elif message.document and message.document.thumbs:
-        thumbnail = message.document.thumbs[0].file_id
-        thumbnail_path = await client.download_media(thumbnail)
-    elif message.animation and message.animation.thumbs:
-        thumbnail = message.animation.thumbs[0].file_id
-        thumbnail_path = await client.download_media(thumbnail)
-
-    fileName = quote_plus(get_name(log_msg))
-    if not SHORTLINK:
-        stream = f"{URL}watch/{log_msg.id}/{fileName}?hash={get_hash(log_msg)}"
-        download = f"{URL}{log_msg.id}/{fileName}?hash={get_hash(log_msg)}"
-    else:
-        stream = await get_shortlink(f"{URL}watch/{log_msg.id}/{fileName}?hash={get_hash(log_msg)}")
-        download = await get_shortlink(f"{URL}{log_msg.id}/{fileName}?hash={get_hash(log_msg)}")
+    try:
+        log_msg = await client.send_cached_media(
+            chat_id=LOG_CHANNEL,
+            file_id=fileid,
+        )
+        print(f"File sent successfully, log_msg.id: {log_msg.id}")  # Debugging log
         
-    # Send media with or without thumbnail
-    if thumbnail_path:
-        await log_msg.reply_photo(photo=thumbnail_path, caption=f"•• ʟɪɴᴋ ɢᴇɴᴇʀᴀᴛᴇᴅ ꜰᴏʀ ɪᴅ #{user_id} \n•• ᴜꜱᴇʀɴᴀᴍᴇ : {username} \n\n•• ᖴᎥᒪᗴ Nᗩᗰᗴ : {fileName}",
-                                  quote=True,
-                                  disable_web_page_preview=True,
-                                  reply_markup=InlineKeyboardMarkup([[
-                                      InlineKeyboardButton("🚀 Fast Download 🚀", url=download),
-                                      InlineKeyboardButton('🖥️ Watch online 🖥️', url=stream)
-                                  ]]))
-        os.remove(thumbnail_path)  # Clean up the downloaded thumbnail
-    else:
-        await log_msg.reply_text(
-            text=f"•• ʟɪɴᴋ ɢᴇɴᴇʀᴀᴛᴇᴅ ꜰᴏʀ ɪᴅ #{user_id} \n•• ᴜꜱᴇʀɴᴀᴍᴇ : {username} \n\n•• ᖴᎥᒪᗴ Nᗩᗰᗴ : {fileName}",
+        # Check for thumbnail and download if available
+        thumbnail_path = None
+        if message.video and message.video.thumbs:
+            thumbnail = message.video.thumbs[0].file_id
+            thumbnail_path = await client.download_media(thumbnail)
+        elif message.document and message.document.thumbs:
+            thumbnail = message.document.thumbs[0].file_id
+            thumbnail_path = await client.download_media(thumbnail)
+        elif message.animation and message.animation.thumbs:
+            thumbnail = message.animation.thumbs[0].file_id
+            thumbnail_path = await client.download_media(thumbnail)
+
+        fileName = quote_plus(get_name(log_msg))
+        if not SHORTLINK:
+            stream = f"{URL}watch/{log_msg.id}/{fileName}?hash={get_hash(log_msg)}"
+            download = f"{URL}{log_msg.id}/{fileName}?hash={get_hash(log_msg)}"
+        else:
+            stream = await get_shortlink(f"{URL}watch/{log_msg.id}/{fileName}?hash={get_hash(log_msg)}")
+            download = await get_shortlink(f"{URL}{log_msg.id}/{fileName}?hash={get_hash(log_msg)}")
+        
+        # Send media with or without thumbnail
+        if thumbnail_path:
+            await log_msg.reply_photo(photo=thumbnail_path, caption=f"•• ʟɪɴᴋ ɢᴇɴᴇʀᴀᴛᴇᴅ ꜰᴏʀ ɪᴅ #{user_id} \n•• ᴜꜱᴇʀɴᴀᴍᴇ : {username} \n\n•• ᖴᎥᒪᗴ Nᗩᗰᗴ : {fileName}",
+                                      quote=True,
+                                      disable_web_page_preview=True,
+                                      reply_markup=InlineKeyboardMarkup([[
+                                          InlineKeyboardButton("🚀 Fast Download 🚀", url=download),
+                                          InlineKeyboardButton('🖥️ Watch online 🖥️', url=stream)
+                                      ]]))
+            os.remove(thumbnail_path)  # Clean up the downloaded thumbnail
+        else:
+            await log_msg.reply_text(
+                text=f"•• ʟɪɴᴋ ɢᴇɴᴇʀᴀᴛᴇᴅ ꜰᴏʀ ɪᴅ #{user_id} \n•• ᴜꜱᴇʀɴᴀᴍᴇ : {username} \n\n•• ᖴᎥᒪᗴ Nᗩᗰᗴ : {fileName}",
+                quote=True,
+                disable_web_page_preview=True,
+                reply_markup=InlineKeyboardMarkup([[
+                    InlineKeyboardButton("🚀 Fast Download 🚀", url=download),
+                    InlineKeyboardButton('🖥️ Watch online 🖥️', url=stream)
+                ]])
+            )
+
+        rm = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton("👀 𝐰𝐚𝐭𝐜𝐡 𝐨𝐧𝐥𝐢𝐧𝐞 | 𝐃𝐨𝐰𝐧𝐥𝐨𝐚𝐝 𝐅𝐢𝐥𝐞 📥", url=stream),
+                ]
+            ]
+        )
+        
+        msg_text = """<strong>📂 Fɪʟᴇ ɴᴀᴍᴇ :</strong> <b>{}</b>\n\n<strong>📦 Fɪʟᴇ ꜱɪᴢᴇ :</strong> <b>{}</b>"""
+
+        await message.reply_text(
+            text=msg_text.format(get_name(log_msg), humanbytes(get_media_file_size(message)), download, stream),
             quote=True,
             disable_web_page_preview=True,
-            reply_markup=InlineKeyboardMarkup([[
-                InlineKeyboardButton("🚀 Fast Download 🚀", url=download),
-                InlineKeyboardButton('🖥️ Watch online 🖥️', url=stream)
-            ]])
-        )
+            reply_markup=rm
+        )  
 
-    rm = InlineKeyboardMarkup(
-        [
-            [
-                InlineKeyboardButton("👀 𝐰𝐚𝐭𝐜𝐡 𝐨𝐧𝐥𝐢𝐧𝐞 | 𝐃𝐨𝐰𝐧𝐥𝐨𝐚𝐝 𝐅𝐢𝐥𝐞 📥", url=stream),
-            ]
-        ]
-    )
-    
-    msg_text = """<strong>📂 Fɪʟᴇ ɴᴀᴍᴇ :</strong> <b>{}</b>\n\n<strong>📦 Fɪʟᴇ ꜱɪᴢᴇ :</strong> <b>{}</b>"""
-
-    await message.reply_text(
-        text=msg_text.format(get_name(log_msg), humanbytes(get_media_file_size(message)), download, stream),
-        quote=True,
-        disable_web_page_preview=True,
-        reply_markup=rm
-    )  
+    except Exception as e:
+        print(f"Error in processing message: {e}")
+        await message.reply_text("Something went wrong. Please try again later.")
