@@ -73,7 +73,6 @@ async def stream_start(client, message):
                 photo=thumbnail_path,
                 caption=msg_text.format(get_name(log_msg), humanbytes(get_media_file_size(message)), download, stream),
                 quote=True,
-                disable_web_page_preview=True,
                 reply_markup=InlineKeyboardMarkup(
                     [
                         [InlineKeyboardButton("sᴛʀᴇᴀᴍ 🖥", url=stream),
@@ -89,7 +88,6 @@ async def stream_start(client, message):
         await message.reply_text(
             text=msg_text.format(get_name(log_msg), humanbytes(get_media_file_size(message)), download, stream),
             quote=True,
-            disable_web_page_preview=True,
             reply_markup=InlineKeyboardMarkup(
                 [
                     [InlineKeyboardButton("sᴛʀᴇᴀᴍ 🖥", url=stream),
