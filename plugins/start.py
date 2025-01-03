@@ -12,7 +12,10 @@ from info import URL, LOG_CHANNEL, SHORTLINK
 
 # Define get_hash function
 def get_hash(log_msg_id, filename):
-    # Generate a hash based on the log_msg_id and filename to ensure consistency
+    """
+    Generate a consistent hash using both the log_msg_id and filename.
+    This ensures the hash is unique and can be validated correctly.
+    """
     return hashlib.md5(f"{log_msg_id}{filename}".encode()).hexdigest()
 
 @Client.on_message(filters.private & (filters.document | filters.video))
@@ -48,8 +51,10 @@ async def stream_start(client, message):
         # URL encode the filename to handle special characters
         fileName = quote_plus(filename)  # URL encode the filename
 
-        # Generate links with the hash based on log_msg_id and filename
+        # Generate hash for the URL based on the log_msg_id and filename
         hash_value = get_hash(log_msg.id, filename)
+
+        # Generate the URLs
         if not SHORTLINK:
             stream = f"{URL}watch/{log_msg.id}/{fileName}?hash={hash_value}"
             download = f"{URL}{log_msg.id}/{fileName}?hash={hash_value}"
