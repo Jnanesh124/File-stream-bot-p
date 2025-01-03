@@ -69,81 +69,47 @@ async def start(client, message):
 
 @Client.on_message(filters.private & (filters.document | filters.video))
 async def stream_start(client, message):
+    file = getattr(message, message.media.value)
+    filename = file.file_name
+    filesize = humanize.naturalsize(file.file_size) 
+    fileid = file.file_id
+    user_id = message.from_user.id
+    username = message.from_user.mention 
+
+    log_msg = await client.send_cached_media(
+        chat_id=LOG_CHANNEL,
+        file_id=fileid,
+    )
+    
+    fileName = quote_plus(get_name(log_msg))
+    if not SHORTLINK:
+        stream = f"{URL}watch/{log_msg.id}/{fileName}?hash={get_hash(log_msg)}"
+        download = f"{URL}{log_msg.id}/{fileName}?hash={get_hash(log_msg)}"
+    else:
+        stream = await get_shortlink(f"{URL}watch/{log_msg.id}/{fileName}?hash={get_hash(log_msg)}")
+        download = await get_shortlink(f"{URL}{log_msg.id}/{fileName}?hash={get_hash(log_msg)}")
+        
+    # Respond to the user with the generated links
     try:
-        file = getattr(message, message.media.value)
-        filename = file.file_name
-        filesize = humanize.naturalsize(file.file_size)
-        fileid = file.file_id
-        user_id = message.from_user.id
-        username = message.from_user.mention
-
-        # Log message sent to log channel
-        log_msg = await client.send_cached_media(chat_id=LOG_CHANNEL, file_id=fileid)
-        print("File sent to log channel, proceeding with link generation")
-
-        fileName = quote_plus(get_name(log_msg))
-        if not SHORTLINK:
-            stream = f"{URL}watch/{log_msg.id}/{fileName}?hash={get_hash(log_msg)}"
-            download = f"{URL}{log_msg.id}/{fileName}?hash={get_hash(log_msg)}"
-        else:
-            stream = await get_shortlink(f"{URL}watch/{log_msg.id}/{fileName}?hash={get_hash(log_msg)}")
-            download = await get_shortlink(f"{URL}{log_msg.id}/{fileName}?hash={get_hash(log_msg)}")
-        
-        print(f"Stream and download links generated: {stream}, {download}")
-
-        # Check if thumbnail is available and send the appropriate response
-        thumbnail_path = None  # Initialize thumbnail path for cleanup
-        if message.video and message.video.thumbs:
-            thumbnail = message.video.thumbs[0].file_id
-            thumbnail_path = await client.download_media(thumbnail)
-        elif message.document and message.document.thumbs:
-            thumbnail = message.document.thumbs[0].file_id
-            thumbnail_path = await client.download_media(thumbnail)
-        elif message.animation and message.animation.thumbs:
-            thumbnail = message.animation.thumbs[0].file_id
-            thumbnail_path = await client.download_media(thumbnail)
-
-        # Send file with or without a thumbnail
-        if thumbnail_path:
-            await log_msg.reply_photo(
-                photo=thumbnail_path,
-                caption=f"•• ʟɪɴᴋ ɢᴇɴᴇʀᴀᴛᴇᴅ ꜰᴏʀ ɪᴅ #{user_id} \n•• ᴜꜱᴇʀɴᴀᴍᴇ : {username} \n\n•• ᖴᎥᒪᗴ Nᗩᗰᗴ : {fileName}",
-                quote=True,
-                reply_markup=InlineKeyboardMarkup([[
-                    InlineKeyboardButton("🚀 Fast Download 🚀", url=download),
-                    InlineKeyboardButton('🖥️ Watch online 🖥️', url=stream)
-                ]])
-            )
-            os.remove(thumbnail_path)  # Clean up the downloaded thumbnail
-        else:
-            await log_msg.reply_text(
-                text=f"•• ʟɪɴᴋ ɢᴇɴᴇʀᴀᴛᴇᴅ ꜰᴏʀ ɪᴅ #{user_id} \n•• ᴜꜱᴇʀɴᴀᴍᴇ : {username} \n\n•• ᖴᎥᒪᗴ Nᗩᗰᗴ : {fileName}",
-                quote=True,
-                disable_web_page_preview=True,
-                reply_markup=InlineKeyboardMarkup([[
-                    InlineKeyboardButton("🚀 Fast Download 🚀", url=download),
-                    InlineKeyboardButton('🖥️ Watch online 🖥️', url=stream)
-                ]])
-            )
-
-        print("Response sent to user")
-
-        rm = InlineKeyboardMarkup(
-            [
-                [
-                    InlineKeyboardButton("👀 𝐰𝐚𝐭𝐜𝐡 𝐨𝐧𝐥𝐢𝐧𝐞 | 𝐃𝐨𝐰𝐧𝐥𝐨𝐚𝐝 𝐅𝐢𝐥𝐞 📥", url=stream),
-                ]
-            ]
+        # Send the file info and links to the user's PM
+        await client.send_message(
+            chat_id=user_id,
+            text=f"•• ʟɪɴᴋ ɢᴇɴᴇʀᴀᴛᴇᴅ ꜰᴏʀ ɪᴅ #{user_id} \n•• ᴜꜱᴇʀɴᴀᴍᴇ : {username} \n\n•• ᖴᎥᒪᗴ Nᗩᗰᗴ : {filename}",
+            reply_markup=InlineKeyboardMarkup([[
+                InlineKeyboardButton("🚀 Fast Download 🚀", url=download),
+                InlineKeyboardButton('🖥️ Watch online 🖥️', url=stream)
+            ]])
         )
-        
-        msg_text = """<strong>📂 Fɪʟᴇ ɴᴀᴍᴇ :</strong> <b>{}</b>\n\n<strong>📦 Fɪʟᴇ ꜱɪᴢᴇ :</strong> <b>{}</b>"""
 
-        await message.reply_text(
-            text=msg_text.format(get_name(log_msg), humanbytes(get_media_file_size(message)), download, stream),
-            quote=True,
-            disable_web_page_preview=True,
-            reply_markup=rm
-        )  
-        print("File info response sent")
+        # Additional message with file info
+        await client.send_message(
+            chat_id=user_id,
+            text=f"""<strong>📂 Fɪʟᴇ ɴᴀᴍᴇ :</strong> <b>{filename}</b>\n\n<strong>📦 Fɪʟᴇ ꜱɪᴢᴇ :</strong> <b>{filesize}</b>""",
+            reply_markup=InlineKeyboardMarkup([[
+                InlineKeyboardButton("👀 𝐰𝐚𝐭𝐜𝐡 𝐨𝐧𝐥𝐢𝐧𝐞 | 𝐃𝐨𝐰𝐧𝐥𝐨𝐚𝐝 𝐅𝐢𝐥𝐞 📥", url=stream),
+            ]]),
+            parse_mode=enums.ParseMode.HTML
+        )
+
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error sending response to user: {e}")
