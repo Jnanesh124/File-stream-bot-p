@@ -58,6 +58,7 @@ async def stream_start(client, message):
         reply_markup=buttons,
         quote=True
     )
+    print(f"Stream link generated for file: {get_name(log_msg)}")  # Log
 
 
 @Client.on_callback_query(filters.regex(r"^sample_(\d+)_(.+)"))
@@ -73,13 +74,14 @@ async def generate_sample(client, callback_query):
     )
 
     await callback_query.message.edit_text("Choose sample duration:", reply_markup=buttons)
+    print("User selected Generate Sample Video.")  # Log
 
 
 @Client.on_callback_query(filters.regex(r"^sample_time_(\d+)_(.+)_(\d+)"))
 async def process_sample(client, callback_query):
     _, log_id, stream_link, duration = callback_query.data.split("_", 3)
-    # Here you would implement the logic to generate a sample video using the `stream_link` and `duration`.
     await callback_query.message.edit_text(f"Generating a {duration}-second sample video. This may take some time...")
+    print(f"Generating {duration}-second sample video for stream: {stream_link}")  # Log
 
 
 @Client.on_callback_query(filters.regex(r"^screenshot_(\d+)_(.+)"))
@@ -96,17 +98,18 @@ async def generate_screenshot(client, callback_query):
     )
 
     await callback_query.message.edit_text("Choose the number of screenshots:", reply_markup=buttons)
+    print("User selected Generate Screenshot.")  # Log
 
 
 @Client.on_callback_query(filters.regex(r"^screenshot_count_(\d+)_(.+)_(\d+)"))
 async def process_screenshot(client, callback_query):
     _, log_id, stream_link, count = callback_query.data.split("_", 3)
-    # Here you would implement the logic to generate the specified number of screenshots using the `stream_link`.
     await callback_query.message.edit_text(f"Generating {count} screenshots. This may take some time...")
+    print(f"Generating {count} screenshots for stream: {stream_link}")  # Log
 
 
 @Client.on_callback_query(filters.regex(r"^thumbnail_(\d+)_(.+)"))
 async def extract_thumbnail(client, callback_query):
     _, log_id, stream_link = callback_query.data.split("_", 2)
-    # Here you would implement the logic to extract the thumbnail using the `stream_link`.
     await callback_query.message.edit_text("Extracting thumbnail. This may take some time...")
+    print(f"Extracting thumbnail for stream: {stream_link}")  # Log
