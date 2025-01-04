@@ -144,18 +144,21 @@ async def generate_sample_video(client, callback_query):
 
         # Generate sample video using ffmpeg
         ffmpeg_path = ffmpeg.get_ffmpeg_exe()
+
+        # Create a 20-second sample video
         subprocess.run([ffmpeg_path, '-i', video_file_path, '-t', '00:00:20', '-c:v', 'libx264', '-c:a', 'aac', '-strict', 'experimental', sample_file_path], check=True)
 
-        # Send the generated sample video
+        # Send the generated sample video (ensure it's sent as a video file and not a thumbnail or gif)
         await client.send_video(
             chat_id=callback_query.message.chat.id,
             video=sample_file_path,
-            caption="Here is your sample video (20 seconds)."
+            caption="Here is your sample video (20 seconds).",
+            reply_markup=None  # No additional buttons for simplicity
         )
 
         # Clean up
-        os.remove(video_file_path)
-        os.remove(sample_file_path)
+        os.remove(video_file_path)  # Remove the original video file
+        os.remove(sample_file_path)  # Remove the generated sample video
         logger.info("Sample video generated and sent successfully.")
     except Exception as e:
         logger.error(f"Error generating sample video: {e}")
