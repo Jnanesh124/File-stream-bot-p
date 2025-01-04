@@ -119,3 +119,6 @@ async def generate_screenshot(file_id):
 
 async def extract_thumbnail(file_id):
     print("Thumbnail extraction triggered for file ID:", file_id)
+    
+# Start the bot
+app.run()
