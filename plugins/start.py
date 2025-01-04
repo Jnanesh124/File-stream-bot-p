@@ -2,6 +2,7 @@ import os
 import random
 import subprocess
 import logging
+import humanize  # <-- Add this import
 from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from urllib.parse import quote_plus
