@@ -16,6 +16,37 @@ from info import URL, LOG_CHANNEL, SHORTLINK
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger()
 
+# Function to install FFmpeg with live logging
+def install_ffmpeg():
+    try:
+        # Start live logging
+        logger.info("Starting FFmpeg installation...")
+        
+        # Download and install FFmpeg
+        ffmpeg_url = "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-i686-static.tar.xz"
+        logger.info("Downloading FFmpeg...")
+        os.system(f"curl -L {ffmpeg_url} -o ffmpeg.tar.xz")
+        
+        logger.info("Extracting FFmpeg...")
+        os.system("tar -xf ffmpeg.tar.xz")
+        
+        logger.info("Moving FFmpeg to system path...")
+        os.system("mv ffmpeg*/ffmpeg /usr/local/bin/ffmpeg")
+        
+        logger.info("Cleaning up installation files...")
+        os.system("rm -rf ffmpeg*")
+        
+        # Check if FFmpeg works
+        logger.info("Verifying FFmpeg installation...")
+        subprocess.run(["ffmpeg", "-version"])
+        logger.info("FFmpeg installed successfully!")
+    except Exception as e:
+        logger.error(f"Error during FFmpeg installation: {e}")
+        raise
+
+# Install FFmpeg when the bot starts
+install_ffmpeg()
+
 @Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
     if not await db.is_user_exist(message.from_user.id):
