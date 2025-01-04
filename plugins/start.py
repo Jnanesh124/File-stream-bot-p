@@ -1,4 +1,3 @@
-import re
 import os
 import subprocess
 import logging
@@ -6,60 +5,12 @@ from pyrogram import Client, filters
 from pyrogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 from info import URL, LOG_CHANNEL, SHORTLINK
 from pyrogram.errors import MessageNotModified
-from os import environ
 
-# Set up logging
+
+# Setup logging
 logging.basicConfig(level=logging.INFO)
 
-# Regular expression pattern for validating channel IDs
-id_pattern = re.compile(r'^.\d+$')
-
-# Ensure AUTH_CHANNEL and SECOND_AUTH_CHANNEL are set correctly
-AUTH_CHANNEL = [int(ch) if id_pattern.search(ch) else ch for ch in environ.get('AUTH_CHANNEL', '-1001764441595').split()]
-SECOND_AUTH_CHANNEL = [int(ch) if id_pattern.search(ch) else ch for ch in environ.get('SECOND_AUTH_CHANNEL', '-1002135593873').split()]
-logging.info(f"AUTH_CHANNEL IDs: {AUTH_CHANNEL}")  # Debugging line
-logging.info(f"SECOND_AUTH_CHANNEL IDs: {SECOND_AUTH_CHANNEL}")  # Debugging line
-
-# Bot Information from environment variables
-SESSION = environ.get('SESSION', 'TechVJBot')
-API_ID = int(environ.get('API_ID', '21942125'))
-API_HASH = environ.get('API_HASH', '6d412af77ce89f5bb1ed8971589d61b5')
-BOT_TOKEN = environ.get('BOT_TOKEN', "7774713343:AAHJYTcuEa-20YCJDoMpiwkL2EViZdifRp4")
-
-# Bot Settings
-PORT = environ.get("PORT", "8080")
-
-# Online Stream and Download settings
-MULTI_CLIENT = False
-SLEEP_THRESHOLD = int(environ.get('SLEEP_THRESHOLD', '60'))
-PING_INTERVAL = int(environ.get("PING_INTERVAL", "1200"))  # 20 minutes
-ON_HEROKU = 'DYNO' in environ
-
-URL = environ.get("URL", "https://streembot-009a426ab9b2.herokuapp.com/")
-
-# Admins, Channels & Users
-LOG_CHANNEL = int(environ.get('LOG_CHANNEL', '-1002060163655'))
-ADMINS = [int(admin) if id_pattern.search(admin) else admin for admin in environ.get('ADMINS', '6643562770').split()]
-
-# MongoDB Information
-DATABASE_URI = environ.get('DATABASE_URI', "mongodb+srv://strong:strong@cluster0.ix7usa3.mongodb.net/?retryWrites=true&w=majority")
-DATABASE_NAME = environ.get('DATABASE_NAME', "techvjautobot")
-
-# Shortlink Information
-SHORTLINK = bool(environ.get('SHORTLINK', False))  # Set True Or False
-SHORTLINK_URL = environ.get('SHORTLINK_URL', 'api.shareus.io')
-SHORTLINK_API = environ.get('SHORTLINK_API', 'hRPS5vvZc0OGOEUQJMJzPiojoVK2')
-
-# Pyrogram Client Setup
-app = Client(
-    session_name=SESSION,
-    api_id=API_ID,
-    api_hash=API_HASH,
-    bot_token=BOT_TOKEN,
-    workers=4
-)
-
-@app.on_message(filters.private & (filters.document | filters.video))
+@Client.on_message(filters.private & (filters.document | filters.video))
 async def stream_start(client, message):
     file = getattr(message, message.media.value)
     filename = file.file_name
@@ -71,7 +22,7 @@ async def stream_start(client, message):
     logging.info(f"File received and processing started.")
     logging.info(f"File details - Name: {filename}, Size: {filesize}, User ID: {user_id}")
 
-    # Generate stream link (Ensure you replace with the correct method)
+    # Generate stream link (ensure you replace with the correct method)
     file_name = filename.replace(" ", "_").lower()  # Sanitizing filename
     stream_link = f"{URL}watch/{str(message.message_id)}/{file_name}?hash={fileid}"
 
@@ -92,7 +43,7 @@ async def stream_start(client, message):
     )
 
 
-@app.on_callback_query(filters.regex("thumbnail"))
+@Client.on_callback_query(filters.regex("thumbnail"))
 async def extract_thumbnail(client, callback_query: CallbackQuery):
     try:
         # Ensure that the message contains a video
@@ -127,7 +78,7 @@ async def extract_thumbnail(client, callback_query: CallbackQuery):
         await callback_query.answer("Error while extracting the thumbnail.")
 
 
-@app.on_callback_query(filters.regex("screenshot"))
+@Client.on_callback_query(filters.regex("screenshot"))
 async def generate_screenshot(client, callback_query: CallbackQuery):
     try:
         # Ensure that the message contains a video
@@ -154,7 +105,7 @@ async def generate_screenshot(client, callback_query: CallbackQuery):
         await callback_query.answer("Error while generating the screenshot.")
 
 
-@app.on_callback_query(filters.regex(r"screenshot_(\d+)sec"))
+@Client.on_callback_query(filters.regex(r"screenshot_(\d+)sec"))
 async def take_screenshot(client, callback_query: CallbackQuery):
     try:
         # Ensure that the message contains a video
@@ -190,7 +141,7 @@ async def take_screenshot(client, callback_query: CallbackQuery):
         await callback_query.answer("Error while taking the screenshot.")
 
 
-@app.on_callback_query(filters.regex("sample_video"))
+@Client.on_callback_query(filters.regex("sample_video"))
 async def generate_sample_video(client, callback_query: CallbackQuery):
     try:
         # Ensure that the message contains a video
@@ -218,7 +169,7 @@ async def generate_sample_video(client, callback_query: CallbackQuery):
         await callback_query.answer("Error while generating the sample video.")
 
 
-@app.on_callback_query(filters.regex(r"sample_video_(\d+)sec"))
+@Client.on_callback_query(filters.regex(r"sample_video_(\d+)sec"))
 async def create_sample_video(client, callback_query: CallbackQuery):
     try:
         # Ensure that the message contains a video
@@ -251,8 +202,3 @@ async def create_sample_video(client, callback_query: CallbackQuery):
     except Exception as e:
         logging.error(f"Error creating sample video: {e}")
         await callback_query.answer("Error while creating the sample video.")
-
-
-# Run the bot
-if __name__ == "__main__":
-    app.run()
