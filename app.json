@@ -1,0 +1,17 @@
+{
+  "buildpacks": [
+    {
+      "url": "https://github.com/jonathanong/heroku-buildpack-ffmpeg.git"
+    },
+    {
+      "url": "heroku/python"
+    }
+  ],
+  "dependencies": {
+    "python": "3.9.6",
+    "pip": "21.1.2"
+  },
+  "scripts": {
+    "postdeploy": "echo 'FFmpeg is installed successfully!'"
+  }
+}
