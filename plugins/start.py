@@ -1,39 +1,16 @@
 import os
 import random
 import humanize
-from Script import script
 from pyrogram import Client, filters, enums
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
-from info import URL, LOG_CHANNEL, SHORTLINK
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from urllib.parse import quote_plus
 from TechVJ.util.file_properties import get_name, get_hash, get_media_file_size
 from TechVJ.util.human_readable import humanbytes
 from database.users_chats_db import db
 from utils import temp, get_shortlink
 
-
-@Client.on_message(filters.command("start") & filters.incoming)
-async def start(client, message):
-    try:
-        if not await db.is_user_exist(message.from_user.id):
-            await db.add_user(message.from_user.id, message.from_user.first_name)
-            await client.send_message(
-                LOG_CHANNEL, 
-                script.LOG_TEXT_P.format(message.from_user.id, message.from_user.mention)
-            )
-        rm = InlineKeyboardMarkup(
-            [[
-                InlineKeyboardButton("✨ Update Channel", url="https://t.me/JN2FLIX")
-            ]]
-        )
-        await message.reply_text(
-            script.START_TXT.format(message.from_user.mention, temp.U_NAME, temp.B_NAME),
-            reply_markup=rm,
-            parse_mode=enums.ParseMode.HTML
-        )
-    except Exception as e:
-        print(f"Error in start command: {e}")
-
+# Initialize temp storage as a dictionary
+temp = {}
 
 @Client.on_message(filters.private & (filters.document | filters.video))
 async def stream_start(client, message):
@@ -63,7 +40,7 @@ async def stream_start(client, message):
         fileName = quote_plus(get_name(log_msg))
         stream = f"{URL}watch/{str(log_msg.id)}/{fileName}?hash={get_hash(log_msg)}"
 
-        # Save stream details in temporary storage (could be a database or in-memory dict)
+        # Save stream details in the `temp` dictionary
         temp[log_msg.id] = {"stream_link": stream, "filename": filename, "filesize": filesize}
 
         buttons = InlineKeyboardMarkup(
