@@ -8,6 +8,7 @@ from TechVJ.util.file_properties import get_name, get_hash, get_media_file_size
 from TechVJ.util.human_readable import humanbytes
 from database.users_chats_db import db
 from utils import temp, get_shortlink
+from info import LOG_CHANNEL, URL, SHORTLINK
 
 # Initialize temp storage as a dictionary
 temp = {}
@@ -15,6 +16,9 @@ temp = {}
 @Client.on_message(filters.private & (filters.document | filters.video))
 async def stream_start(client, message):
     try:
+        # Debugging log
+        print(f"LOG_CHANNEL: {LOG_CHANNEL}")
+
         # Acknowledge file receipt
         await message.reply_text("File received! Processing...", quote=True)
         print("File received and processing started.")
