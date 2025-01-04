@@ -1,6 +1,6 @@
 import os
 import random
-import humanize
+import subprocess
 import logging
 from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
@@ -74,12 +74,22 @@ async def stream_start(client, message):
         # Prepare the message text
         msg_text = f"""<i><u>𝗬𝗼𝘂𝗿 𝗟𝗶𝗻𝗸 𝗚𝗲𝗻𝗲𝗿𝗮𝘁𝗲𝗱 !</u></i>\n\n<b>📂 Fɪʟᴇ ɴᴀᴍᴇ :</b> <i>{get_name(log_msg)}</i>\n\n<b>📦 Fɪʟᴇ ꜱɪᴢᴇ :</b> <i>{humanbytes(get_media_file_size(message))}</i>\n\n<b>📥 Dᴏᴡɴʟᴏᴀᴅ :</b> <i>{download}</i>\n\n<b> 🖥ᴡᴀᴛᴄʜ  :</b> <i>{stream}</i>\n\n<b>🚸 Nᴏᴛᴇ : ʟɪɴᴋ ᴡᴏɴ'ᴛ ᴇxᴘɪʀᴇ ᴛɪʟʟ ɪ ᴅᴇʟᴇᴛᴇ</b>"""
 
+        # Add buttons for sample video, screenshot, and thumbnail
+        rm = InlineKeyboardMarkup(
+            [[
+                InlineKeyboardButton("Generate Sample Video", callback_data="generate_sample_video"),
+                InlineKeyboardButton("Generate Screenshot", callback_data="generate_screenshot"),
+                InlineKeyboardButton("Generate Thumbnail", callback_data="generate_thumbnail")
+            ]]
+        )
+
         # Send the message with the thumbnail if available
         if thumbnail_path:
             try:
                 await message.reply_photo(
                     photo=thumbnail_path,
                     caption=msg_text,
+                    reply_markup=rm,
                     quote=True
                 )
                 logger.info(f"Sent thumbnail successfully to {message.from_user.id}")
@@ -89,6 +99,7 @@ async def stream_start(client, message):
             # If no thumbnail, just send the message with the links
             await message.reply_text(
                 text=msg_text,
+                reply_markup=rm,
                 quote=True
             )
             logger.info(f"Sent file without thumbnail to {message.from_user.id}")
@@ -105,3 +116,75 @@ async def stream_start(client, message):
         logger.error(f"Error in processing media: {e}")
         await message.reply_text(f"An error occurred while processing your file: {e}")
 
+
+@Client.on_callback_query(filters.regex("generate_sample_video"))
+async def generate_sample_video(client, callback_query):
+    try:
+        video_file_path = await client.download_media(callback_query.message)
+        sample_file_path = f"/tmp/sample_{os.path.basename(video_file_path)}"
+
+        # Generate sample video using ffmpeg
+        subprocess.run(['ffmpeg', '-i', video_file_path, '-t', '00:00:30', '-c', 'copy', sample_file_path], check=True)
+
+        # Send the generated sample video
+        await client.send_video(
+            chat_id=callback_query.message.chat.id,
+            video=sample_file_path,
+            caption="Here is your sample video (30 seconds)."
+        )
+
+        # Clean up
+        os.remove(video_file_path)
+        os.remove(sample_file_path)
+        logger.info("Sample video generated and sent successfully.")
+    except Exception as e:
+        logger.error(f"Error generating sample video: {e}")
+        await callback_query.answer("Failed to generate sample video.")
+
+@Client.on_callback_query(filters.regex("generate_screenshot"))
+async def generate_screenshot(client, callback_query):
+    try:
+        video_file_path = await client.download_media(callback_query.message)
+        screenshot_file_path = f"/tmp/screenshot_{os.path.basename(video_file_path)}.jpg"
+
+        # Generate screenshot using ffmpeg (random frame)
+        subprocess.run(['ffmpeg', '-i', video_file_path, '-vf', 'select=eq(n\,5)', '-vsync', 'vfr', screenshot_file_path], check=True)
+
+        # Send the generated screenshot
+        await client.send_photo(
+            chat_id=callback_query.message.chat.id,
+            photo=screenshot_file_path,
+            caption="Here is your screenshot."
+        )
+
+        # Clean up
+        os.remove(video_file_path)
+        os.remove(screenshot_file_path)
+        logger.info("Screenshot generated and sent successfully.")
+    except Exception as e:
+        logger.error(f"Error generating screenshot: {e}")
+        await callback_query.answer("Failed to generate screenshot.")
+
+@Client.on_callback_query(filters.regex("generate_thumbnail"))
+async def generate_thumbnail(client, callback_query):
+    try:
+        video_file_path = await client.download_media(callback_query.message)
+        thumbnail_file_path = f"/tmp/thumbnail_{os.path.basename(video_file_path)}.jpg"
+
+        # Generate thumbnail using ffmpeg
+        subprocess.run(['ffmpeg', '-i', video_file_path, '-vf', 'thumbnail', '-vframes', '1', thumbnail_file_path], check=True)
+
+        # Send the generated thumbnail
+        await client.send_photo(
+            chat_id=callback_query.message.chat.id,
+            photo=thumbnail_file_path,
+            caption="Here is your thumbnail."
+        )
+
+        # Clean up
+        os.remove(video_file_path)
+        os.remove(thumbnail_file_path)
+        logger.info("Thumbnail generated and sent successfully.")
+    except Exception as e:
+        logger.error(f"Error generating thumbnail: {e}")
+        await callback_query.answer("Failed to generate thumbnail.")
