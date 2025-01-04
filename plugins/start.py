@@ -11,6 +11,7 @@ from TechVJ.util.human_readable import humanbytes
 from database.users_chats_db import db
 from utils import temp, get_shortlink
 
+
 @Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
     if not await db.is_user_exist(message.from_user.id):
@@ -33,62 +34,79 @@ async def start(client, message):
 @Client.on_message(filters.private & (filters.document | filters.video))
 async def stream_start(client, message):
     file = getattr(message, message.media.value)
-    filename = file.file_name
-    filesize = humanize.naturalsize(file.file_size)
     fileid = file.file_id
     user_id = message.from_user.id
-    username = message.from_user.mention
 
     log_msg = await client.send_cached_media(
         chat_id=LOG_CHANNEL,
         file_id=fileid,
     )
 
-    # Get the thumbnail if available
-    thumbnail_path = None
-    if file.thumbs:
-        thumbnail = file.thumbs[0].file_id
-        thumbnail_path = await client.download_media(thumbnail)
-        print(f"Thumbnail downloaded to {thumbnail_path}")  # Debugging log
-
-    # URL encode the filename
     fileName = quote_plus(get_name(log_msg))
+    stream = f"{URL}watch/{str(log_msg.id)}/{fileName}?hash={get_hash(log_msg)}"
 
-    # Generate the stream and download links
-    if SHORTLINK == False:
-        stream = f"{URL}watch/{str(log_msg.id)}/{fileName}?hash={get_hash(log_msg)}"
-        download = f"{URL}{str(log_msg.id)}/{fileName}?hash={get_hash(log_msg)}"
-    else:
-        stream = await get_shortlink(f"{URL}watch/{str(log_msg.id)}/{fileName}?hash={get_hash(log_msg)}")
-        download = await get_shortlink(f"{URL}{str(log_msg.id)}/{fileName}?hash={get_hash(log_msg)}")
+    buttons = InlineKeyboardMarkup(
+        [[
+            InlineKeyboardButton("Generate Sample Video", callback_data=f"sample_{log_msg.id}_{stream}"),
+            InlineKeyboardButton("Generate Screenshot", callback_data=f"screenshot_{log_msg.id}_{stream}"),
+            InlineKeyboardButton("Extract Thumbnail", callback_data=f"thumbnail_{log_msg.id}_{stream}")
+        ]]
+    )
 
-    # Prepare the message text
-    msg_text = """<i><u>𝗬𝗼𝘂𝗿 𝗟𝗶𝗻𝗸 𝗚𝗲𝗻𝗲𝗿𝗮𝘁𝗲𝗱 !</u></i>\n\n<b>📂 Fɪʟᴇ ɴᴀᴍᴇ :</b> <i>{}</i>\n\n<b>📦 Fɪʟᴇ ꜱɪᴢᴇ :</b> <i>{}</i>\n\n<b>📥 Dᴏᴡɴʟᴏᴀᴅ :</b> <i>{}</i>\n\n<b> 🖥ᴡᴀᴛᴄʜ  :</b> <i>{}</i>\n\n<b>🚸 Nᴏᴛᴇ : ʟɪɴᴋ ᴡᴏɴ'ᴛ ᴇxᴘɪʀᴇ ᴛɪʟʟ ɪ ᴅᴇʟᴇᴛᴇ</b>"""
+    await message.reply_text(
+        text="Choose an option below:",
+        reply_markup=buttons,
+        quote=True
+    )
 
-    # Send the message with the thumbnail if available
-    if thumbnail_path:
-        print(f"Sending thumbnail: {thumbnail_path}")  # Debugging log
-        try:
-            await message.reply_photo(
-                photo=thumbnail_path,
-                caption=msg_text.format(get_name(log_msg), humanbytes(get_media_file_size(message)), download, stream),
-                quote=True
-            )
-            print(f"Thumbnail sent successfully: {thumbnail_path}")  # Debugging log
-        except Exception as e:
-            print(f"Error sending thumbnail: {e}")  # Error log
-    else:
-        # If no thumbnail, just send the message with the links
-        await message.reply_text(
-            text=msg_text.format(get_name(log_msg), humanbytes(get_media_file_size(message)), download, stream),
-            quote=True
-        )
-        print("Sent file without thumbnail")  # Debugging log
 
-    # Clean up the thumbnail if it was downloaded
-    if thumbnail_path:
-        try:
-            os.remove(thumbnail_path)
-            print(f"Deleted thumbnail: {thumbnail_path}")  # Debugging log
-        except Exception as e:
-            print(f"Error deleting thumbnail: {e}")  # Error log
+@Client.on_callback_query(filters.regex(r"^sample_(\d+)_(.+)"))
+async def generate_sample(client, callback_query):
+    _, log_id, stream_link = callback_query.data.split("_", 2)
+
+    buttons = InlineKeyboardMarkup(
+        [[
+            InlineKeyboardButton("20 Sec", callback_data=f"sample_time_{log_id}_{stream_link}_20"),
+            InlineKeyboardButton("30 Sec", callback_data=f"sample_time_{log_id}_{stream_link}_30"),
+            InlineKeyboardButton("50 Sec", callback_data=f"sample_time_{log_id}_{stream_link}_50")
+        ]]
+    )
+
+    await callback_query.message.edit_text("Choose sample duration:", reply_markup=buttons)
+
+
+@Client.on_callback_query(filters.regex(r"^sample_time_(\d+)_(.+)_(\d+)"))
+async def process_sample(client, callback_query):
+    _, log_id, stream_link, duration = callback_query.data.split("_", 3)
+    # Here you would implement the logic to generate a sample video using the `stream_link` and `duration`.
+    await callback_query.message.edit_text(f"Generating a {duration}-second sample video. This may take some time...")
+
+
+@Client.on_callback_query(filters.regex(r"^screenshot_(\d+)_(.+)"))
+async def generate_screenshot(client, callback_query):
+    _, log_id, stream_link = callback_query.data.split("_", 2)
+
+    buttons = InlineKeyboardMarkup(
+        [[
+            InlineKeyboardButton("3 Screenshots", callback_data=f"screenshot_count_{log_id}_{stream_link}_3"),
+            InlineKeyboardButton("5 Screenshots", callback_data=f"screenshot_count_{log_id}_{stream_link}_5"),
+            InlineKeyboardButton("7 Screenshots", callback_data=f"screenshot_count_{log_id}_{stream_link}_7"),
+            InlineKeyboardButton("10 Screenshots", callback_data=f"screenshot_count_{log_id}_{stream_link}_10")
+        ]]
+    )
+
+    await callback_query.message.edit_text("Choose the number of screenshots:", reply_markup=buttons)
+
+
+@Client.on_callback_query(filters.regex(r"^screenshot_count_(\d+)_(.+)_(\d+)"))
+async def process_screenshot(client, callback_query):
+    _, log_id, stream_link, count = callback_query.data.split("_", 3)
+    # Here you would implement the logic to generate the specified number of screenshots using the `stream_link`.
+    await callback_query.message.edit_text(f"Generating {count} screenshots. This may take some time...")
+
+
+@Client.on_callback_query(filters.regex(r"^thumbnail_(\d+)_(.+)"))
+async def extract_thumbnail(client, callback_query):
+    _, log_id, stream_link = callback_query.data.split("_", 2)
+    # Here you would implement the logic to extract the thumbnail using the `stream_link`.
+    await callback_query.message.edit_text("Extracting thumbnail. This may take some time...")
