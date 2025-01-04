@@ -1,147 +1,95 @@
 import os
-import subprocess
 import logging
 from pyrogram import Client, filters
 from pyrogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
-from info import URL, LOG_CHANNEL
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
+# Constants
+URL = "https://streembot-009a426ab9b2.herokuapp.com/"  # Replace with your server URL
+LOG_CHANNEL = -1002060163655  # Replace with your log channel ID
 
-async def download_partial_video(client, file_id, duration, output_file):
-    """
-    Downloads a small portion of the video using ffmpeg.
-    Args:
-        client: Pyrogram client.
-        file_id: The file ID of the video from Telegram.
-        duration: Duration (in seconds) to download.
-        output_file: Name of the output file.
-    Returns:
-        Path to the downloaded file.
-    """
-    logging.info(f"Starting partial download: {duration} seconds.")
-    input_file = await client.download_media(file_id, file_name="input_file")
-    
-    # Use ffmpeg to trim the required portion
-    cmd = [
-        "ffmpeg",
-        "-i", input_file,
-        "-t", str(duration),
-        "-c", "copy",
-        output_file
-    ]
-    subprocess.run(cmd, check=True)
-    os.remove(input_file)  # Clean up input file
-    return output_file
+# Define bot
+app = Client(
+    "my_bot",
+    api_id=int(os.environ.get("API_ID", 12345)),
+    api_hash=os.environ.get("API_HASH", "your_api_hash"),
+    bot_token=os.environ.get("BOT_TOKEN", "your_bot_token"),
+)
 
+@app.on_message(filters.private & (filters.document | filters.video))
+async def stream_start(client, message):
+    try:
+        file = getattr(message, message.media.value)
+        filename = file.file_name
+        filesize = file.file_size
+        fileid = file.file_id
+        user_id = message.from_user.id
+        username = message.from_user.mention
 
-@Client.on_callback_query(filters.regex("thumbnail"))
+        logger.info(f"File received - Name: {filename}, Size: {filesize}, User ID: {user_id}")
+
+        # Generate stream link
+        sanitized_filename = filename.replace(" ", "_").lower()
+        stream_link = f"{URL}watch/{message.message_id}/{sanitized_filename}?hash={fileid}"
+
+        # Prepare response
+        msg_text = (
+            f"<i><u>Your Link Generated!</u></i>\n\n"
+            f"<b>File Name:</b> <i>{filename}</i>\n"
+            f"<b>File Size:</b> <i>{filesize} bytes</i>\n"
+            f"<b>Stream Link:</b> <i>{stream_link}</i>"
+        )
+        reply_markup = InlineKeyboardMarkup([
+            [InlineKeyboardButton("Generate Sample Video", callback_data="sample_video")],
+            [InlineKeyboardButton("Generate Screenshot", callback_data="screenshot")],
+            [InlineKeyboardButton("Extract Thumbnail", callback_data="thumbnail")]
+        ])
+
+        await message.reply_text(
+            text=msg_text,
+            reply_markup=reply_markup,
+            parse_mode="HTML"
+        )
+
+        # Log message to LOG_CHANNEL
+        await client.send_message(
+            LOG_CHANNEL,
+            f"File received:\n\n"
+            f"File Name: {filename}\n"
+            f"File Size: {filesize} bytes\n"
+            f"User: {username} (ID: {user_id})",
+        )
+    except Exception as e:
+        logger.error(f"Error in stream_start: {e}")
+        await message.reply_text("An error occurred while processing your file.")
+
+@app.on_callback_query(filters.regex("thumbnail"))
 async def extract_thumbnail(client, callback_query: CallbackQuery):
     try:
-        if callback_query.message.video:
-            logging.info("User selected Extract Thumbnail.")
-            
-            # Download only the first few seconds
-            partial_video = await download_partial_video(
-                client,
-                callback_query.message.video.file_id,
-                duration=5,
-                output_file="partial_video.mp4"
-            )
-            thumbnail_file = "thumbnail.jpg"
-
-            # Generate thumbnail using ffmpeg
-            cmd = [
-                "ffmpeg",
-                "-i", partial_video,
-                "-vf", "thumbnail",
-                "-vframes", "1",
-                thumbnail_file
-            ]
-            subprocess.run(cmd, check=True)
-
-            await client.send_photo(callback_query.from_user.id, photo=thumbnail_file)
-
-            # Clean up
-            os.remove(thumbnail_file)
-            os.remove(partial_video)
-            logging.info("Thumbnail extracted and sent.")
-        else:
-            await callback_query.answer("Error: No video found to extract the thumbnail from.")
-            logging.error("No video found in the message for thumbnail extraction.")
-    
+        logger.info("User selected Extract Thumbnail.")
+        await callback_query.answer("Thumbnail extraction is not implemented yet.", show_alert=True)
     except Exception as e:
-        logging.error(f"Error extracting thumbnail: {e}")
-        await callback_query.answer("Error while extracting the thumbnail.")
+        logger.error(f"Error in extract_thumbnail: {e}")
 
-
-@Client.on_callback_query(filters.regex(r"screenshot_(\d+)sec"))
-async def take_screenshot(client, callback_query: CallbackQuery):
+@app.on_callback_query(filters.regex("screenshot"))
+async def generate_screenshot(client, callback_query: CallbackQuery):
     try:
-        if callback_query.message.video:
-            time = callback_query.data.split("_")[1]
-            logging.info(f"Taking screenshot at {time} seconds.")
-
-            # Download a small portion of the video around the desired timestamp
-            partial_video = await download_partial_video(
-                client,
-                callback_query.message.video.file_id,
-                duration=int(time) + 1,  # Ensure we cover the required timestamp
-                output_file="partial_video.mp4"
-            )
-            screenshot_file = f"screenshot_{time}.jpg"
-
-            # Generate screenshot using ffmpeg
-            cmd = [
-                "ffmpeg",
-                "-i", partial_video,
-                "-ss", time,
-                "-vframes", "1",
-                screenshot_file
-            ]
-            subprocess.run(cmd, check=True)
-
-            await client.send_photo(callback_query.from_user.id, photo=screenshot_file)
-
-            # Clean up
-            os.remove(screenshot_file)
-            os.remove(partial_video)
-            logging.info(f"Screenshot taken and sent at {time} seconds.")
-        else:
-            await callback_query.answer("Error: No video found to generate a screenshot from.")
-            logging.error("No video found in the message for screenshot generation.")
-    
+        logger.info("User selected Generate Screenshot.")
+        await callback_query.answer("Screenshot generation is not implemented yet.", show_alert=True)
     except Exception as e:
-        logging.error(f"Error taking screenshot: {e}")
-        await callback_query.answer("Error while taking the screenshot.")
+        logger.error(f"Error in generate_screenshot: {e}")
 
-
-@Client.on_callback_query(filters.regex(r"sample_video_(\d+)sec"))
-async def create_sample_video(client, callback_query: CallbackQuery):
+@app.on_callback_query(filters.regex("sample_video"))
+async def generate_sample_video(client, callback_query: CallbackQuery):
     try:
-        if callback_query.message.video:
-            time = callback_query.data.split("_")[2]
-            logging.info(f"Generating sample video of {time} seconds.")
-
-            # Download only the required portion of the video
-            sample_video_file = f"sample_{time}.mp4"
-            await download_partial_video(
-                client,
-                callback_query.message.video.file_id,
-                duration=int(time),
-                output_file=sample_video_file
-            )
-
-            await client.send_video(callback_query.from_user.id, video=sample_video_file)
-
-            # Clean up
-            os.remove(sample_video_file)
-            logging.info(f"Sample video created and sent at {time} seconds.")
-        else:
-            await callback_query.answer("Error: No video found to generate a sample video from.")
-            logging.error("No video found in the message for sample video generation.")
-    
+        logger.info("User selected Generate Sample Video.")
+        await callback_query.answer("Sample video generation is not implemented yet.", show_alert=True)
     except Exception as e:
-        logging.error(f"Error creating sample video: {e}")
-        await callback_query.answer("Error while creating the sample video.")
+        logger.error(f"Error in generate_sample_video: {e}")
+
+if __name__ == "__main__":
+    logger.info("Bot is starting...")
+    app.run()
