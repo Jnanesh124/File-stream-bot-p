@@ -1,95 +1,129 @@
 import os
-import logging
-from pyrogram import Client, filters
-from pyrogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
+import random
+import humanize
+from Script import script
+from pyrogram import Client, filters, enums
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
+from info import URL, LOG_CHANNEL, SHORTLINK
+from urllib.parse import quote_plus
+from TechVJ.util.file_properties import get_name, get_hash, get_media_file_size
+from TechVJ.util.human_readable import humanbytes
+from database.users_chats_db import db
+from utils import temp, get_shortlink
 
-# Setup logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Ensure FFmpeg is installed on the server for this script to work.
 
-# Constants
-URL = "https://streembot-009a426ab9b2.herokuapp.com/"  # Replace with your server URL
-LOG_CHANNEL = -1002060163655  # Replace with your log channel ID
+@Client.on_message(filters.command("start") & filters.incoming)
+async def start(client, message):
+    if not await db.is_user_exist(message.from_user.id):
+        await db.add_user(message.from_user.id, message.from_user.first_name)
+        await client.send_message(LOG_CHANNEL, script.LOG_TEXT_P.format(message.from_user.id, message.from_user.mention))
+    rm = InlineKeyboardMarkup(
+        [[InlineKeyboardButton("✨ Update Channel", url="https://t.me/JN2FLIX")]]
+    )
+    await client.send_message(
+        chat_id=message.from_user.id,
+        text=script.START_TXT.format(message.from_user.mention, temp.U_NAME, temp.B_NAME),
+        reply_markup=rm,
+        parse_mode=enums.ParseMode.HTML
+    )
+    return
 
-# Define bot
-app = Client(
-    "my_bot",
-    api_id=int(os.environ.get("API_ID", 12345)),
-    api_hash=os.environ.get("API_HASH", "your_api_hash"),
-    bot_token=os.environ.get("BOT_TOKEN", "your_bot_token"),
-)
 
-@app.on_message(filters.private & (filters.document | filters.video))
+@Client.on_message(filters.private & (filters.document | filters.video))
 async def stream_start(client, message):
-    try:
-        file = getattr(message, message.media.value)
-        filename = file.file_name
-        filesize = file.file_size
-        fileid = file.file_id
-        user_id = message.from_user.id
-        username = message.from_user.mention
+    file = getattr(message, message.media.value)
+    filename = file.file_name
+    filesize = humanize.naturalsize(file.file_size)
+    fileid = file.file_id
 
-        logger.info(f"File received - Name: {filename}, Size: {filesize}, User ID: {user_id}")
+    log_msg = await client.send_cached_media(chat_id=LOG_CHANNEL, file_id=fileid)
+    file_name = quote_plus(get_name(log_msg))
 
-        # Generate stream link
-        sanitized_filename = filename.replace(" ", "_").lower()
-        stream_link = f"{URL}watch/{message.message_id}/{sanitized_filename}?hash={fileid}"
+    stream = f"{URL}watch/{str(log_msg.id)}/{file_name}?hash={get_hash(log_msg)}"
+    download = f"{URL}{str(log_msg.id)}/{file_name}?hash={get_hash(log_msg)}"
 
-        # Prepare response
-        msg_text = (
-            f"<i><u>Your Link Generated!</u></i>\n\n"
-            f"<b>File Name:</b> <i>{filename}</i>\n"
-            f"<b>File Size:</b> <i>{filesize} bytes</i>\n"
-            f"<b>Stream Link:</b> <i>{stream_link}</i>"
-        )
-        reply_markup = InlineKeyboardMarkup([
-            [InlineKeyboardButton("Generate Sample Video", callback_data="sample_video")],
-            [InlineKeyboardButton("Generate Screenshot", callback_data="screenshot")],
-            [InlineKeyboardButton("Extract Thumbnail", callback_data="thumbnail")]
-        ])
+    msg_text = f"""<i><u>Your Link Generated!</u></i>\n\n<b>📂 File Name:</b> <i>{get_name(log_msg)}</i>\n\n<b>📦 File Size:</b> <i>{filesize}</i>\n\n<b>📥 Download:</b> <i>{download}</i>\n\n<b>🖥 Watch:</b> <i>{stream}</i>\n\n<b>🚸 Note: Links won't expire until deleted</b>"""
 
-        await message.reply_text(
-            text=msg_text,
-            reply_markup=reply_markup,
-            parse_mode="HTML"
-        )
+    buttons = [
+        [InlineKeyboardButton("🎥 Generate Sample Video", callback_data="generate_sample")],
+        [InlineKeyboardButton("🖼 Generate Screenshot", callback_data="generate_screenshot")],
+        [InlineKeyboardButton("📷 Extract Thumbnail", callback_data="extract_thumbnail")]
+    ]
+    reply_markup = InlineKeyboardMarkup(buttons)
 
-        # Log message to LOG_CHANNEL
-        await client.send_message(
-            LOG_CHANNEL,
-            f"File received:\n\n"
-            f"File Name: {filename}\n"
-            f"File Size: {filesize} bytes\n"
-            f"User: {username} (ID: {user_id})",
-        )
-    except Exception as e:
-        logger.error(f"Error in stream_start: {e}")
-        await message.reply_text("An error occurred while processing your file.")
+    await message.reply_text(
+        text=msg_text,
+        reply_markup=reply_markup,
+        parse_mode="HTML",
+        quote=True
+    )
 
-@app.on_callback_query(filters.regex("thumbnail"))
-async def extract_thumbnail(client, callback_query: CallbackQuery):
-    try:
-        logger.info("User selected Extract Thumbnail.")
-        await callback_query.answer("Thumbnail extraction is not implemented yet.", show_alert=True)
-    except Exception as e:
-        logger.error(f"Error in extract_thumbnail: {e}")
 
-@app.on_callback_query(filters.regex("screenshot"))
-async def generate_screenshot(client, callback_query: CallbackQuery):
-    try:
-        logger.info("User selected Generate Screenshot.")
-        await callback_query.answer("Screenshot generation is not implemented yet.", show_alert=True)
-    except Exception as e:
-        logger.error(f"Error in generate_screenshot: {e}")
-
-@app.on_callback_query(filters.regex("sample_video"))
+@Client.on_callback_query(filters.regex("generate_sample"))
 async def generate_sample_video(client, callback_query: CallbackQuery):
-    try:
-        logger.info("User selected Generate Sample Video.")
-        await callback_query.answer("Sample video generation is not implemented yet.", show_alert=True)
-    except Exception as e:
-        logger.error(f"Error in generate_sample_video: {e}")
+    video_file_id = callback_query.message.video.file_id
+    sample_file = "sample_video.mp4"
+    duration = 30  # seconds
 
-if __name__ == "__main__":
-    logger.info("Bot is starting...")
-    app.run()
+    cmd = [
+        "ffmpeg",
+        "-i", f"pipe:{video_file_id}",
+        "-t", str(duration),
+        "-c:v", "libx264",
+        "-preset", "ultrafast",
+        sample_file
+    ]
+    subprocess.run(cmd, stdin=subprocess.PIPE)
+
+    await client.send_video(
+        chat_id=callback_query.from_user.id,
+        video=sample_file,
+        caption="Here's your sample video!"
+    )
+    os.remove(sample_file)
+
+
+@Client.on_callback_query(filters.regex("generate_screenshot"))
+async def generate_screenshot(client, callback_query: CallbackQuery):
+    video_file_id = callback_query.message.video.file_id
+    screenshot_file = "screenshot.jpg"
+    timestamp = random.randint(0, 60)  # Adjust max timestamp as needed
+
+    cmd = [
+        "ffmpeg",
+        "-i", f"pipe:{video_file_id}",
+        "-ss", str(timestamp),
+        "-vframes", "1",
+        screenshot_file
+    ]
+    subprocess.run(cmd, stdin=subprocess.PIPE)
+
+    await client.send_photo(
+        chat_id=callback_query.from_user.id,
+        photo=screenshot_file,
+        caption=f"Random screenshot from {timestamp} seconds!"
+    )
+    os.remove(screenshot_file)
+
+
+@Client.on_callback_query(filters.regex("extract_thumbnail"))
+async def extract_thumbnail(client, callback_query: CallbackQuery):
+    video_file_id = callback_query.message.video.file_id
+    thumbnail_file = "thumbnail.jpg"
+
+    cmd = [
+        "ffmpeg",
+        "-i", f"pipe:{video_file_id}",
+        "-vf", "thumbnail",
+        "-frames:v", "1",
+        thumbnail_file
+    ]
+    subprocess.run(cmd, stdin=subprocess.PIPE)
+
+    await client.send_photo(
+        chat_id=callback_query.from_user.id,
+        photo=thumbnail_file,
+        caption="Here's the extracted thumbnail!"
+    )
+    os.remove(thumbnail_file)
