@@ -14,3 +14,4 @@ humanize==4.8.0
 pytz
 ffmpeg-python==0.2.0
 asyncio
+imageio[ffmpeg]
