@@ -2,8 +2,8 @@ import os
 import random
 import subprocess
 import logging
-import humanize  # <-- Add this import
-import imageio_ffmpeg as ffmpeg  # <-- Added imageio_ffmpeg import
+import humanize
+import imageio_ffmpeg as ffmpeg
 from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from urllib.parse import quote_plus
@@ -20,7 +20,7 @@ logger = logging.getLogger()
 # Function to check if FFmpeg is available
 def check_ffmpeg():
     try:
-        ffmpeg_path = ffmpeg.get_ffmpeg_exe()  # Get the path to the ffmpeg binary
+        ffmpeg_path = ffmpeg.get_ffmpeg_exe()
         logger.info(f"FFmpeg binary path: {ffmpeg_path}")
         subprocess.run([ffmpeg_path, '-version'], check=True)
         logger.info("FFmpeg is working!")
@@ -88,7 +88,7 @@ async def stream_start(client, message):
             download = await get_shortlink(f"{URL}{str(log_msg.id)}/{fileName}?hash={get_hash(log_msg)}")
 
         # Prepare the message text
-        msg_text = f"""<i><u>𝗬𝗼𝘂𝗿 𝗟𝗶𝗻𝗸 𝗚𝗲𝗻𝗲𝗿𝗮𝘁𝗲𝗱 !</u></i>\n\n<b>📂 Fɪʟᴇ ɴᴀᴍᴇ :</b> <i>{get_name(log_msg)}</i>\n\n<b>📦 Fɪʟᴇ ꜱɪᴢᴇ :</b> <i>{humanbytes(get_media_file_size(message))}</i>\n\n<b>📥 Dᴏᴡɴʟᴏᴀᴅ :</b> <i>{download}</i>\n\n<b> 🖥ᴡᴀᴛᴄʜ  :</b> <i>{stream}</i>\n\n<b>🚸 Nᴏᴛᴇ : ʟɪɴᴋ ᴡᴏɴ'ᴛ ᴇxᴘɪʀᴇ ᴛɪʟʟ ɪ ᴅᴇʟᴇᴛᴇ</b>"""
+        msg_text = f"""<i><u>𝗬𝗼𝘂𝗿 𝗟𝗶𝗻𝗸 𝗚𝗲𝗻𝗲𝗿𝗮𝘁𝗲𝗱 !</u></i>\n\n<b>📂 Fɪʟᴇ ɴᴀᴍᴇ :</b> <i>{get_name(log_msg)}</i>\n\n<b>📦 Fɪʟᴇ ꜱɪ[...]
 
         # Add buttons for sample video, screenshot, and thumbnail
         rm = InlineKeyboardMarkup(
@@ -132,7 +132,6 @@ async def stream_start(client, message):
         logger.error(f"Error in processing media: {e}")
         await message.reply_text(f"An error occurred while processing your file: {e}")
 
-
 @Client.on_callback_query(filters.regex("generate_sample_video"))
 async def generate_sample_video(client, callback_query):
     try:
@@ -162,26 +161,34 @@ async def generate_sample_video(client, callback_query):
 async def generate_screenshot(client, callback_query):
     try:
         video_file_path = await client.download_media(callback_query.message)
-        screenshot_file_path = f"/tmp/screenshot_{os.path.basename(video_file_path)}.jpg"
+        screenshot_file_paths = [f"/tmp/screenshot_{i}_{os.path.basename(video_file_path)}.jpg" for i in range(1, 6)]
 
-        # Generate screenshot using ffmpeg (at 00:00:01)
-        ffmpeg_path = ffmpeg.get_ffmpeg_exe()
-        subprocess.run([ffmpeg_path, '-i', video_file_path, '-vf', 'select=eq(n\\,0)', '-vsync', 'vfr', screenshot_file_path], check=True)
+        # Generate screenshots at 5 random timestamps
+        duration = subprocess.check_output(
+            [ffmpeg.get_ffmpeg_exe(), '-i', video_file_path, '-show_entries', 'format=duration', '-v', 'quiet', '-of', 'csv=p=0']
+        ).decode().strip()
+        duration = float(duration)
+        timestamps = sorted(random.sample(range(1, int(duration)), 5))
 
-        # Send the generated screenshot
-        await client.send_photo(
-            chat_id=callback_query.message.chat.id,
-            photo=screenshot_file_path,
-            caption="Here is your screenshot."
-        )
+        for t, screenshot_file_path in zip(timestamps, screenshot_file_paths):
+            subprocess.run([ffmpeg.get_ffmpeg_exe(), '-i', video_file_path, '-vf', f'select=gte(n\\,{t})', '-vframes', '1', '-vsync', 'vfr', screenshot_file_path], check=True)
+
+        # Send the generated screenshots
+        for screenshot_file_path in screenshot_file_paths:
+            await client.send_photo(
+                chat_id=callback_query.message.chat.id,
+                photo=screenshot_file_path,
+                caption="Here is your screenshot."
+            )
 
         # Clean up
         os.remove(video_file_path)
-        os.remove(screenshot_file_path)
-        logger.info("Screenshot generated and sent successfully.")
+        for screenshot_file_path in screenshot_file_paths:
+            os.remove(screenshot_file_path)
+        logger.info("Screenshots generated and sent successfully.")
     except Exception as e:
-        logger.error(f"Error generating screenshot: {e}")
-        await callback_query.answer("Failed to generate screenshot.")
+        logger.error(f"Error generating screenshots: {e}")
+        await callback_query.answer("Failed to generate screenshots.")
 
 @Client.on_callback_query(filters.regex("generate_thumbnail"))
 async def generate_thumbnail(client, callback_query):
