@@ -88,7 +88,11 @@ async def stream_start(client, message):
             download = await get_shortlink(f"{URL}{str(log_msg.id)}/{fileName}?hash={get_hash(log_msg)}")
 
         # Prepare the message text
-        msg_text = f"""<i><u>𝗬𝗼𝘂𝗿 𝗟𝗶𝗻𝗸 𝗚𝗲𝗻𝗲𝗿𝗮𝘁𝗲𝗱 !</u></i>\n\n<b>📂 Fɪʟᴇ ɴᴀᴍᴇ :</b> <i>{get_name(log_msg)}</i>\n\n<b>📦 Fɪʟᴇ ꜱɪ[...]
+        msg_text = (f"<i><u>𝗬𝗼𝘂𝗿 𝗟𝗶𝗻𝗸 𝗚𝗲𝗻𝗲𝗿𝗮𝘁𝗲𝗱 !</u></i>\n\n"
+                    f"<b>📂 Fɪʟᴇ ɴᴀᴍᴇ :</b> <i>{get_name(log_msg)}</i>\n\n"
+                    f"<b>📦 Fɪʟᴇ ꜱɪᴢᴇ :</b> <i>{filesize}</i>\n\n"
+                    f"<b>🔗 Stream :</b> <i><a href='{stream}'>Watch</a></i>\n\n"
+                    f"<b>⬇️ Download :</b> <i><a href='{download}'>Download</a></i>")
 
         # Add buttons for sample video, screenshot, and thumbnail
         rm = InlineKeyboardMarkup(
