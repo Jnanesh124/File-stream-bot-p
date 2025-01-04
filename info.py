@@ -27,7 +27,7 @@ ON_HEROKU = 'DYNO' in environ
 URL = environ.get("URL", "https://streembot-009a426ab9b2.herokuapp.com/")
 
 # Admins, Channels & Users
-LOG_CHANNEL = int(environ.get('LOG_CHANNEL', '-1002225559950'))
+LOG_CHANNEL = int(environ.get('LOG_CHANNEL', '-1002060163655'))
 ADMINS = [int(admin) if id_pattern.search(admin) else admin for admin in environ.get('ADMINS', '6643562770').split()]
 
 # MongoDB information
