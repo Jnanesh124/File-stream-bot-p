@@ -140,7 +140,7 @@ async def stream_start(client, message):
 async def generate_sample_video(client, callback_query):
     try:
         video_file_path = await client.download_media(callback_query.message)
-        sample_file_path = f"/tmp/sample_{os.path.basename(video_file_path)}.mp4"
+        sample_file_path = f"/tmp/sample_{os.path.basename(video_file_path).split('.')[0]}.mp4"
 
         # Generate sample video using ffmpeg
         ffmpeg_path = ffmpeg.get_ffmpeg_exe()
