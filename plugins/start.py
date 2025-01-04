@@ -63,11 +63,14 @@ async def stream_start(client, message):
         fileName = quote_plus(get_name(log_msg))
         stream = f"{URL}watch/{str(log_msg.id)}/{fileName}?hash={get_hash(log_msg)}"
 
+        # Save stream details in temporary storage (could be a database or in-memory dict)
+        temp[log_msg.id] = {"stream_link": stream, "filename": filename, "filesize": filesize}
+
         buttons = InlineKeyboardMarkup(
             [[
-                InlineKeyboardButton("Generate Sample Video", callback_data=f"sample_{log_msg.id}_{stream}"),
-                InlineKeyboardButton("Generate Screenshot", callback_data=f"screenshot_{log_msg.id}_{stream}"),
-                InlineKeyboardButton("Extract Thumbnail", callback_data=f"thumbnail_{log_msg.id}_{stream}")
+                InlineKeyboardButton("Generate Sample Video", callback_data=f"sample_{log_msg.id}"),
+                InlineKeyboardButton("Generate Screenshot", callback_data=f"screenshot_{log_msg.id}"),
+                InlineKeyboardButton("Extract Thumbnail", callback_data=f"thumbnail_{log_msg.id}")
             ]]
         )
 
@@ -83,65 +86,105 @@ async def stream_start(client, message):
         print(f"Error in stream_start: {e}")
 
 
-@Client.on_callback_query(filters.regex(r"^sample_(\d+)_(.+)"))
+@Client.on_callback_query(filters.regex(r"^sample_(\d+)"))
 async def generate_sample(client, callback_query):
     try:
-        _, log_id, stream_link = callback_query.data.split("_", 2)
+        log_id = int(callback_query.data.split("_")[1])
+
+        # Retrieve stream details from storage
+        stream_data = temp.get(log_id, {})
+        if not stream_data:
+            await callback_query.message.edit_text("Error: Stream data not found.")
+            return
+
         buttons = InlineKeyboardMarkup(
             [[
-                InlineKeyboardButton("20 Sec", callback_data=f"sample_time_{log_id}_{stream_link}_20"),
-                InlineKeyboardButton("30 Sec", callback_data=f"sample_time_{log_id}_{stream_link}_30"),
-                InlineKeyboardButton("50 Sec", callback_data=f"sample_time_{log_id}_{stream_link}_50")
+                InlineKeyboardButton("20 Sec", callback_data=f"sample_time_{log_id}_20"),
+                InlineKeyboardButton("30 Sec", callback_data=f"sample_time_{log_id}_30"),
+                InlineKeyboardButton("50 Sec", callback_data=f"sample_time_{log_id}_50")
             ]]
         )
+
         await callback_query.message.edit_text("Choose sample duration:", reply_markup=buttons)
         print("User selected Generate Sample Video.")
     except Exception as e:
         print(f"Error in generate_sample: {e}")
 
 
-@Client.on_callback_query(filters.regex(r"^sample_time_(\d+)_(.+)_(\d+)"))
+@Client.on_callback_query(filters.regex(r"^sample_time_(\d+)_(\d+)"))
 async def process_sample(client, callback_query):
     try:
-        _, log_id, stream_link, duration = callback_query.data.split("_", 3)
+        log_id, duration = map(int, callback_query.data.split("_")[1:])
+
+        # Retrieve stream details from storage
+        stream_data = temp.get(log_id, {})
+        if not stream_data:
+            await callback_query.message.edit_text("Error: Stream data not found.")
+            return
+
+        stream_link = stream_data["stream_link"]
         await callback_query.message.edit_text(f"Generating a {duration}-second sample video. This may take some time...")
         print(f"Generating {duration}-second sample video for stream: {stream_link}")
     except Exception as e:
         print(f"Error in process_sample: {e}")
 
 
-@Client.on_callback_query(filters.regex(r"^screenshot_(\d+)_(.+)"))
+@Client.on_callback_query(filters.regex(r"^screenshot_(\d+)"))
 async def generate_screenshot(client, callback_query):
     try:
-        _, log_id, stream_link = callback_query.data.split("_", 2)
+        log_id = int(callback_query.data.split("_")[1])
+
+        # Retrieve stream details from storage
+        stream_data = temp.get(log_id, {})
+        if not stream_data:
+            await callback_query.message.edit_text("Error: Stream data not found.")
+            return
+
         buttons = InlineKeyboardMarkup(
             [[
-                InlineKeyboardButton("3 Screenshots", callback_data=f"screenshot_count_{log_id}_{stream_link}_3"),
-                InlineKeyboardButton("5 Screenshots", callback_data=f"screenshot_count_{log_id}_{stream_link}_5"),
-                InlineKeyboardButton("7 Screenshots", callback_data=f"screenshot_count_{log_id}_{stream_link}_7"),
-                InlineKeyboardButton("10 Screenshots", callback_data=f"screenshot_count_{log_id}_{stream_link}_10")
+                InlineKeyboardButton("3 Screenshots", callback_data=f"screenshot_count_{log_id}_3"),
+                InlineKeyboardButton("5 Screenshots", callback_data=f"screenshot_count_{log_id}_5"),
+                InlineKeyboardButton("7 Screenshots", callback_data=f"screenshot_count_{log_id}_7"),
+                InlineKeyboardButton("10 Screenshots", callback_data=f"screenshot_count_{log_id}_10")
             ]]
         )
+
         await callback_query.message.edit_text("Choose the number of screenshots:", reply_markup=buttons)
         print("User selected Generate Screenshot.")
     except Exception as e:
         print(f"Error in generate_screenshot: {e}")
 
 
-@Client.on_callback_query(filters.regex(r"^screenshot_count_(\d+)_(.+)_(\d+)"))
+@Client.on_callback_query(filters.regex(r"^screenshot_count_(\d+)_(\d+)"))
 async def process_screenshot(client, callback_query):
     try:
-        _, log_id, stream_link, count = callback_query.data.split("_", 3)
+        log_id, count = map(int, callback_query.data.split("_")[1:])
+
+        # Retrieve stream details from storage
+        stream_data = temp.get(log_id, {})
+        if not stream_data:
+            await callback_query.message.edit_text("Error: Stream data not found.")
+            return
+
+        stream_link = stream_data["stream_link"]
         await callback_query.message.edit_text(f"Generating {count} screenshots. This may take some time...")
         print(f"Generating {count} screenshots for stream: {stream_link}")
     except Exception as e:
         print(f"Error in process_screenshot: {e}")
 
 
-@Client.on_callback_query(filters.regex(r"^thumbnail_(\d+)_(.+)"))
+@Client.on_callback_query(filters.regex(r"^thumbnail_(\d+)"))
 async def extract_thumbnail(client, callback_query):
     try:
-        _, log_id, stream_link = callback_query.data.split("_", 2)
+        log_id = int(callback_query.data.split("_")[1])
+
+        # Retrieve stream details from storage
+        stream_data = temp.get(log_id, {})
+        if not stream_data:
+            await callback_query.message.edit_text("Error: Stream data not found.")
+            return
+
+        stream_link = stream_data["stream_link"]
         await callback_query.message.edit_text("Extracting thumbnail. This may take some time...")
         print(f"Extracting thumbnail for stream: {stream_link}")
     except Exception as e:
