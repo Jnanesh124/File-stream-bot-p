@@ -1,6 +1,7 @@
 import os
-import asyncio
+import random
 import humanize
+from Script import script
 from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 from info import URL, LOG_CHANNEL, SHORTLINK
@@ -9,13 +10,13 @@ from TechVJ.util.file_properties import get_name, get_hash, get_media_file_size
 from TechVJ.util.human_readable import humanbytes
 from database.users_chats_db import db
 from utils import temp, get_shortlink
-# Initialize your bot
-app = Client("my_bot")  # Replace "my_bot" with your actual session name
-@app.on_message(filters.command("start") & filters.incoming)
+
+
+@Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
     if not await db.is_user_exist(message.from_user.id):
         await db.add_user(message.from_user.id, message.from_user.first_name)
-        await client.send_message(LOG_CHANNEL, f"New user started the bot: {message.from_user.mention}")
+        await client.send_message(LOG_CHANNEL, script.LOG_TEXT_P.format(message.from_user.id, message.from_user.mention))
     rm = InlineKeyboardMarkup(
         [[
             InlineKeyboardButton("✨ Update Channel", url="https://t.me/JN2FLIX")
@@ -23,76 +24,81 @@ async def start(client, message):
     )
     await client.send_message(
         chat_id=message.from_user.id,
-        text=f"Hello {message.from_user.mention}, welcome to the service!",
+        text=script.START_TXT.format(message.from_user.mention, temp.U_NAME, temp.B_NAME),
         reply_markup=rm,
         parse_mode=enums.ParseMode.HTML
     )
-@app.on_message(filters.private & (filters.document | filters.video))
+    return
+
+
+@Client.on_message(filters.private & (filters.document | filters.video))
 async def stream_start(client, message):
     file = getattr(message, message.media.value)
     filename = file.file_name
     filesize = humanize.naturalsize(file.file_size)
     fileid = file.file_id
-    user_id = message.from_user.id
+
     log_msg = await client.send_cached_media(chat_id=LOG_CHANNEL, file_id=fileid)
-    thumbnail_path = None
-    if file.thumbs:
-        thumbnail = file.thumbs[0].file_id
-        thumbnail_path = await client.download_media(thumbnail)
     fileName = quote_plus(get_name(log_msg))
     stream = f"{URL}watch/{str(log_msg.id)}/{fileName}?hash={get_hash(log_msg)}"
-    download = f"{URL}{str(log_msg.id)}/{fileName}?hash={get_hash(log_msg)}"
-    msg_text = """<i><u>𝗬𝗼𝘂𝗿 𝗟𝗶𝗻𝗸 𝗚𝗲𝗻𝗲𝗿𝗮𝘁𝗲𝗱!</u></i>\n\n<b>📂 File name :</b> <i>{}</i>\n\n<b>📦 File size :</b> <i>{}</i>\n\n<b>📥 Download :</b> <i>{}</i>\n\n<b>🖥 Watch :</b> <i>{}</i>"""
-    action_buttons = InlineKeyboardMarkup(
-        [[
-            InlineKeyboardButton("🎞 Generate Sample Video", callback_data="generate_sample"),
-            InlineKeyboardButton("📷 Generate Screenshot", callback_data="generate_screenshot"),
-            InlineKeyboardButton("🌄 Extract Thumbnail", callback_data="extract_thumbnail"),
-        ]]
-    )
+
+    buttons = [
+        [InlineKeyboardButton("🎥 Sample Video", callback_data=f"sample_{log_msg.id}")],
+        [InlineKeyboardButton("📸 Screenshot", callback_data=f"screenshot_{log_msg.id}")],
+        [InlineKeyboardButton("🖼️ Extract Thumbnail", callback_data=f"thumbnail_{log_msg.id}")]
+    ]
+
     await message.reply_text(
-        text="<i>What would you like to do?</i>",
-        reply_markup=action_buttons,
-        quote=True
+        text=f"<b>File:</b> {filename}\n<b>Size:</b> {filesize}\n<b>Stream Link:</b> {stream}",
+        reply_markup=InlineKeyboardMarkup(buttons),
+        parse_mode="HTML"
     )
-    if thumbnail_path:
-        await message.reply_photo(
+
+
+@Client.on_callback_query(filters.regex(r"sample_(\d+)"))
+async def generate_sample_video(client, callback_query: CallbackQuery):
+    message_id = int(callback_query.data.split("_")[1])
+    file_path = await client.download_media(callback_query.message.reply_to_message.video.file_id, file_name=f"sample_{message_id}.mp4", progress=None)
+
+    output_file = f"sample_video_{message_id}.mp4"
+    os.system(f"ffmpeg -i {file_path} -ss 00:00:10 -t 00:00:20 -c copy {output_file}")
+
+    await client.send_video(
+        chat_id=callback_query.message.chat.id,
+        video=output_file,
+        caption="Sample Video Generated!"
+    )
+    os.remove(output_file)
+
+
+@Client.on_callback_query(filters.regex(r"screenshot_(\d+)"))
+async def generate_screenshot(client, callback_query: CallbackQuery):
+    message_id = int(callback_query.data.split("_")[1])
+    file_path = await client.download_media(callback_query.message.reply_to_message.video.file_id, file_name=f"video_{message_id}.mp4", progress=None)
+
+    output_image = f"screenshot_{message_id}.jpg"
+    os.system(f"ffmpeg -i {file_path} -vf thumbnail -frames:v 1 {output_image}")
+
+    await client.send_photo(
+        chat_id=callback_query.message.chat.id,
+        photo=output_image,
+        caption="Screenshot Generated!"
+    )
+    os.remove(output_image)
+
+
+@Client.on_callback_query(filters.regex(r"thumbnail_(\d+)"))
+async def extract_thumbnail(client, callback_query: CallbackQuery):
+    file = callback_query.message.reply_to_message.video
+    if file.thumbs:
+        thumb = file.thumbs[0].file_id
+        thumbnail_path = await client.download_media(thumb)
+
+        await client.send_photo(
+            chat_id=callback_query.message.chat.id,
             photo=thumbnail_path,
-            caption=msg_text.format(get_name(log_msg), humanbytes(get_media_file_size(message)), download, stream),
-            quote=True
+            caption="Thumbnail Extracted!"
         )
+        os.remove(thumbnail_path)
     else:
-        await message.reply_text(
-            text=msg_text.format(get_name(log_msg), humanbytes(get_media_file_size(message)), download, stream),
-            quote=True
-        )
-    if thumbnail_path:
-        try:
-            os.remove(thumbnail_path)
-        except Exception as e:
-            print(f"Error deleting thumbnail: {e}")
-@app.on_callback_query()
-async def handle_query(client: Client, callback_query: CallbackQuery):
-    user_id = callback_query.from_user.id
-    message_id = callback_query.message.message_id
-    await callback_query.answer()  # Acknowledge the callback query
-    if callback_query.data == "generate_sample":
-        await callback_query.message.reply_text("Generating sample video... (this feature is not yet implemented)")
-        return
-    elif callback_query.data == "generate_screenshot":
-        await callback_query.message.reply_text("Generating screenshot... (this feature is not yet implemented)")
-        return
-    elif callback_query.data == "extract_thumbnail":
-        await callback_query.message.reply_text("Extracting thumbnail... (this feature is not yet implemented)")
-        return
-    await callback_query.message.delete()
-# Placeholder functions (implement as necessary)
-async def generate_sample_video(file_id):
-    print("Sample video generation triggered for file ID:", file_id)
-async def generate_screenshot(file_id):
-    print("Screenshot generation triggered for file ID:", file_id)
-async def extract_thumbnail(file_id):
-    print("Thumbnail extraction triggered for file ID:", file_id)
-# Start the bot with asyncio.run() to avoid event loop issues
-if _name_ == "_main_":
-    asyncio.run(app.run())
+        await callback_query.answer("No thumbnail available for this file!", show_alert=True)
