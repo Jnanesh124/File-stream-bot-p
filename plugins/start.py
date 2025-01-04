@@ -3,6 +3,7 @@ import random
 import subprocess
 import logging
 import humanize  # <-- Add this import
+import imageio_ffmpeg as ffmpeg  # <-- Added imageio_ffmpeg import
 from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from urllib.parse import quote_plus
@@ -16,36 +17,19 @@ from info import URL, LOG_CHANNEL, SHORTLINK
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger()
 
-# Function to install FFmpeg with live logging
-def install_ffmpeg():
+# Function to check if FFmpeg is available
+def check_ffmpeg():
     try:
-        # Start live logging
-        logger.info("Starting FFmpeg installation...")
-        
-        # Download and install FFmpeg
-        ffmpeg_url = "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-i686-static.tar.xz"
-        logger.info("Downloading FFmpeg...")
-        os.system(f"curl -L {ffmpeg_url} -o ffmpeg.tar.xz")
-        
-        logger.info("Extracting FFmpeg...")
-        os.system("tar -xf ffmpeg.tar.xz")
-        
-        logger.info("Moving FFmpeg to system path...")
-        os.system("mv ffmpeg*/ffmpeg /usr/local/bin/ffmpeg")
-        
-        logger.info("Cleaning up installation files...")
-        os.system("rm -rf ffmpeg*")
-        
-        # Check if FFmpeg works
-        logger.info("Verifying FFmpeg installation...")
-        subprocess.run(["ffmpeg", "-version"])
-        logger.info("FFmpeg installed successfully!")
+        ffmpeg_path = ffmpeg.get_ffmpeg_exe()  # Get the path to the ffmpeg binary
+        logger.info(f"FFmpeg binary path: {ffmpeg_path}")
+        subprocess.run([ffmpeg_path, '-version'], check=True)
+        logger.info("FFmpeg is working!")
     except Exception as e:
-        logger.error(f"Error during FFmpeg installation: {e}")
-        raise
+        logger.error(f"Error: {e}")
+        raise Exception("FFmpeg not found or not working!")
 
-# Install FFmpeg when the bot starts
-install_ffmpeg()
+# Check if FFmpeg is available at the start
+check_ffmpeg()
 
 @Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
@@ -156,7 +140,8 @@ async def generate_sample_video(client, callback_query):
         sample_file_path = f"/tmp/sample_{os.path.basename(video_file_path)}"
 
         # Generate sample video using ffmpeg
-        subprocess.run(['ffmpeg', '-i', video_file_path, '-t', '00:00:30', '-c', 'copy', sample_file_path], check=True)
+        ffmpeg_path = ffmpeg.get_ffmpeg_exe()
+        subprocess.run([ffmpeg_path, '-i', video_file_path, '-t', '00:00:30', '-c', 'copy', sample_file_path], check=True)
 
         # Send the generated sample video
         await client.send_video(
@@ -180,7 +165,8 @@ async def generate_screenshot(client, callback_query):
         screenshot_file_path = f"/tmp/screenshot_{os.path.basename(video_file_path)}.jpg"
 
         # Generate screenshot using ffmpeg (random frame)
-        subprocess.run(['ffmpeg', '-i', video_file_path, '-vf', 'select=eq(n\,5)', '-vsync', 'vfr', screenshot_file_path], check=True)
+        ffmpeg_path = ffmpeg.get_ffmpeg_exe()
+        subprocess.run([ffmpeg_path, '-i', video_file_path, '-vf', 'select=eq(n\,5)', '-vsync', 'vfr', screenshot_file_path], check=True)
 
         # Send the generated screenshot
         await client.send_photo(
@@ -204,13 +190,14 @@ async def generate_thumbnail(client, callback_query):
         thumbnail_file_path = f"/tmp/thumbnail_{os.path.basename(video_file_path)}.jpg"
 
         # Generate thumbnail using ffmpeg
-        subprocess.run(['ffmpeg', '-i', video_file_path, '-vf', 'thumbnail', '-vframes', '1', thumbnail_file_path], check=True)
+        ffmpeg_path = ffmpeg.get_ffmpeg_exe()
+        subprocess.run([ffmpeg_path, '-i', video_file_path, '-vf', 'thumbnail', '-vframes', '1', thumbnail_file_path], check=True)
 
         # Send the generated thumbnail
         await client.send_photo(
             chat_id=callback_query.message.chat.id,
             photo=thumbnail_file_path,
-            caption="Here is your thumbnail."
+            caption="Here is your video thumbnail."
         )
 
         # Clean up
