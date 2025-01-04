@@ -56,12 +56,15 @@ async def stream_start(client, message):
         ]
     ])
 
+    print("Sending message with options...")  # Debugging log
+
     # Send message with options
     await client.send_message(
         chat_id=message.from_user.id,
         text=f"File Name: {filename}\nFile Size: {filesize}",
         reply_markup=markup,
     )
+    print("Message with options sent.")  # Debugging log
 
 @Client.on_callback_query(filters.regex("generate_sample"))
 async def generate_sample(client, callback_query: CallbackQuery):
