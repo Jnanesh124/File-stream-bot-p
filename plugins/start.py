@@ -141,13 +141,13 @@ async def generate_sample_video(client, callback_query):
 
         # Generate sample video using ffmpeg
         ffmpeg_path = ffmpeg.get_ffmpeg_exe()
-        subprocess.run([ffmpeg_path, '-i', video_file_path, '-t', '00:00:30', '-c', 'copy', sample_file_path], check=True)
+        subprocess.run([ffmpeg_path, '-i', video_file_path, '-t', '00:00:20', '-c:v', 'libx264', '-c:a', 'aac', '-strict', 'experimental', sample_file_path], check=True)
 
         # Send the generated sample video
         await client.send_video(
             chat_id=callback_query.message.chat.id,
             video=sample_file_path,
-            caption="Here is your sample video (30 seconds)."
+            caption="Here is your sample video (20 seconds)."
         )
 
         # Clean up
@@ -164,9 +164,9 @@ async def generate_screenshot(client, callback_query):
         video_file_path = await client.download_media(callback_query.message)
         screenshot_file_path = f"/tmp/screenshot_{os.path.basename(video_file_path)}.jpg"
 
-        # Generate screenshot using ffmpeg (random frame)
+        # Generate screenshot using ffmpeg (at 00:00:01)
         ffmpeg_path = ffmpeg.get_ffmpeg_exe()
-        subprocess.run([ffmpeg_path, '-i', video_file_path, '-vf', 'select=eq(n\,5)', '-vsync', 'vfr', screenshot_file_path], check=True)
+        subprocess.run([ffmpeg_path, '-i', video_file_path, '-vf', 'select=eq(n\\,0)', '-vsync', 'vfr', screenshot_file_path], check=True)
 
         # Send the generated screenshot
         await client.send_photo(
@@ -191,7 +191,7 @@ async def generate_thumbnail(client, callback_query):
 
         # Generate thumbnail using ffmpeg
         ffmpeg_path = ffmpeg.get_ffmpeg_exe()
-        subprocess.run([ffmpeg_path, '-i', video_file_path, '-vf', 'thumbnail', '-vframes', '1', thumbnail_file_path], check=True)
+        subprocess.run([ffmpeg_path, '-i', video_file_path, '-vframes', '1', '-an', '-s', '320x240', '-f', 'image2', thumbnail_file_path], check=True)
 
         # Send the generated thumbnail
         await client.send_photo(
