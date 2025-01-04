@@ -142,18 +142,28 @@ async def generate_sample_video(client, callback_query):
         video_file_path = await client.download_media(callback_query.message)
         sample_file_path = f"/tmp/sample_{os.path.basename(video_file_path).split('.')[0]}.mp4"
 
-        # Generate sample video using ffmpeg
+        # Generate sample video using ffmpeg with explicit parameters for video and audio quality
         ffmpeg_path = ffmpeg.get_ffmpeg_exe()
 
-        # Create a 20-second sample video
-        subprocess.run([ffmpeg_path, '-i', video_file_path, '-t', '00:00:20', '-c:v', 'libx264', '-c:a', 'aac', '-strict', 'experimental', sample_file_path], check=True)
+        # Set the output video to 20 seconds, with a constant frame rate and specific bitrate
+        subprocess.run([
+            ffmpeg_path,
+            '-i', video_file_path,
+            '-t', '00:00:20',            # Set the duration to 20 seconds
+            '-c:v', 'libx264',           # Use the x264 codec for video
+            '-c:a', 'aac',               # Use AAC codec for audio
+            '-b:v', '1000k',             # Set video bitrate to 1000kbps (adjust if necessary)
+            '-r', '30',                  # Set the frame rate to 30 fps
+            '-s', '640x360',             # Optional: Set the resolution to 640x360 (adjust as needed)
+            '-strict', 'experimental',
+            sample_file_path
+        ], check=True)
 
-        # Send the generated sample video (ensure it's sent as a video file and not a thumbnail or gif)
+        # Send the generated sample video (ensure it's sent as a video file)
         await client.send_video(
             chat_id=callback_query.message.chat.id,
             video=sample_file_path,
-            caption="Here is your sample video (20 seconds).",
-            reply_markup=None  # No additional buttons for simplicity
+            caption="Here is your sample video (20 seconds)."
         )
 
         # Clean up
@@ -163,7 +173,7 @@ async def generate_sample_video(client, callback_query):
     except Exception as e:
         logger.error(f"Error generating sample video: {e}")
         await callback_query.answer("Failed to generate sample video.")
-
+        
 @Client.on_callback_query(filters.regex("generate_screenshot"))
 async def generate_screenshot(client, callback_query):
     try:
