@@ -27,12 +27,15 @@ async def start(client, message):
 
 @Client.on_message(filters.private & (filters.document | filters.video))
 async def stream_start(client, message):
+    print("File received and processing started.")  # Debugging log
     file = getattr(message, message.media.value)
     filename = file.file_name
     filesize = humanbytes(file.file_size)
     fileid = file.file_id
     user_id = message.from_user.id
     username = message.from_user.mention
+
+    print(f"File details - Name: {filename}, Size: {filesize}, User ID: {user_id}")  # Debugging log
 
     log_msg = await client.send_cached_media(
         chat_id=LOG_CHANNEL,
@@ -62,6 +65,7 @@ async def stream_start(client, message):
 
 @Client.on_callback_query(filters.regex("generate_sample"))
 async def generate_sample(client, callback_query: CallbackQuery):
+    print("User selected Generate Sample Video.")  # Debugging log
     user_id = callback_query.from_user.id
 
     # Reply with options for sample video duration
@@ -79,6 +83,7 @@ async def generate_sample(client, callback_query: CallbackQuery):
 async def process_sample(client, callback_query: CallbackQuery):
     duration = callback_query.data.split("_")[1]
     user_id = callback_query.from_user.id
+    print(f"Processing sample video for {duration} seconds.")  # Debugging log
 
     # Get the file stream link (you'll get this from earlier messages)
     file_url = "your_stream_url_here"
@@ -104,6 +109,8 @@ async def process_sample(client, callback_query: CallbackQuery):
 
 @Client.on_callback_query(filters.regex("generate_screenshot"))
 async def generate_screenshot(client, callback_query: CallbackQuery):
+    print("User selected Generate Screenshot.")  # Debugging log
+
     # Reply with options for screenshot time
     markup = InlineKeyboardMarkup([
         [
@@ -120,6 +127,7 @@ async def generate_screenshot(client, callback_query: CallbackQuery):
 async def process_screenshot(client, callback_query: CallbackQuery):
     time = callback_query.data.split("_")[1]
     user_id = callback_query.from_user.id
+    print(f"Processing screenshot at {time} seconds.")  # Debugging log
 
     # Get the file stream link
     file_url = "your_stream_url_here"
@@ -145,6 +153,8 @@ async def process_screenshot(client, callback_query: CallbackQuery):
 
 @Client.on_callback_query(filters.regex("generate_thumbnail"))
 async def generate_thumbnail(client, callback_query: CallbackQuery):
+    print("User selected Generate Thumbnail.")  # Debugging log
+
     # Get the file stream link
     file_url = "your_stream_url_here"
 
