@@ -1,222 +1,258 @@
+import re
 import os
-import random
-import humanize
-from Script import script
-from pyrogram import Client, filters, enums
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
-from info import URL, LOG_CHANNEL, SHORTLINK
-from urllib.parse import quote_plus
-from TechVJ.util.file_properties import get_name, get_hash, get_media_file_size
-from TechVJ.util.human_readable import humanbytes
-from database.users_chats_db import db
-from utils import temp, get_shortlink
 import subprocess
 import logging
+from pyrogram import Client, filters
+from pyrogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
+from info import URL, LOG_CHANNEL, SHORTLINK
+from pyrogram.errors import MessageNotModified
+from os import environ
 
-# Setup logging
+# Set up logging
 logging.basicConfig(level=logging.INFO)
 
-@Client.on_message(filters.command("start") & filters.incoming)
-async def start(client, message):
-    if not await db.is_user_exist(message.from_user.id):
-        await db.add_user(message.from_user.id, message.from_user.first_name)
-        await client.send_message(LOG_CHANNEL, script.LOG_TEXT_P.format(message.from_user.id, message.from_user.mention))
-    
-    rm = InlineKeyboardMarkup(
-        [[
-            InlineKeyboardButton("✨ Update Channel", url="https://t.me/JN2FLIX")
-        ]]
-    )
-    await client.send_message(
-        chat_id=message.from_user.id,
-        text=script.START_TXT.format(message.from_user.mention, temp.U_NAME, temp.B_NAME),
-        reply_markup=rm,
-        parse_mode=enums.ParseMode.HTML
-    )
-    return
+# Regular expression pattern for validating channel IDs
+id_pattern = re.compile(r'^.\d+$')
 
+# Ensure AUTH_CHANNEL and SECOND_AUTH_CHANNEL are set correctly
+AUTH_CHANNEL = [int(ch) if id_pattern.search(ch) else ch for ch in environ.get('AUTH_CHANNEL', '-1001764441595').split()]
+SECOND_AUTH_CHANNEL = [int(ch) if id_pattern.search(ch) else ch for ch in environ.get('SECOND_AUTH_CHANNEL', '-1002135593873').split()]
+logging.info(f"AUTH_CHANNEL IDs: {AUTH_CHANNEL}")  # Debugging line
+logging.info(f"SECOND_AUTH_CHANNEL IDs: {SECOND_AUTH_CHANNEL}")  # Debugging line
 
-@Client.on_message(filters.private & (filters.document | filters.video))
+# Bot Information from environment variables
+SESSION = environ.get('SESSION', 'TechVJBot')
+API_ID = int(environ.get('API_ID', '21942125'))
+API_HASH = environ.get('API_HASH', '6d412af77ce89f5bb1ed8971589d61b5')
+BOT_TOKEN = environ.get('BOT_TOKEN', "7774713343:AAHJYTcuEa-20YCJDoMpiwkL2EViZdifRp4")
+
+# Bot Settings
+PORT = environ.get("PORT", "8080")
+
+# Online Stream and Download settings
+MULTI_CLIENT = False
+SLEEP_THRESHOLD = int(environ.get('SLEEP_THRESHOLD', '60'))
+PING_INTERVAL = int(environ.get("PING_INTERVAL", "1200"))  # 20 minutes
+ON_HEROKU = 'DYNO' in environ
+
+URL = environ.get("URL", "https://streembot-009a426ab9b2.herokuapp.com/")
+
+# Admins, Channels & Users
+LOG_CHANNEL = int(environ.get('LOG_CHANNEL', '-1002060163655'))
+ADMINS = [int(admin) if id_pattern.search(admin) else admin for admin in environ.get('ADMINS', '6643562770').split()]
+
+# MongoDB Information
+DATABASE_URI = environ.get('DATABASE_URI', "mongodb+srv://strong:strong@cluster0.ix7usa3.mongodb.net/?retryWrites=true&w=majority")
+DATABASE_NAME = environ.get('DATABASE_NAME', "techvjautobot")
+
+# Shortlink Information
+SHORTLINK = bool(environ.get('SHORTLINK', False))  # Set True Or False
+SHORTLINK_URL = environ.get('SHORTLINK_URL', 'api.shareus.io')
+SHORTLINK_API = environ.get('SHORTLINK_API', 'hRPS5vvZc0OGOEUQJMJzPiojoVK2')
+
+# Pyrogram Client Setup
+app = Client(
+    session_name=SESSION,
+    api_id=API_ID,
+    api_hash=API_HASH,
+    bot_token=BOT_TOKEN,
+    workers=4
+)
+
+@app.on_message(filters.private & (filters.document | filters.video))
 async def stream_start(client, message):
+    file = getattr(message, message.media.value)
+    filename = file.file_name
+    filesize = file.file_size
+    fileid = file.file_id
+    user_id = message.from_user.id
+    username = message.from_user.mention
+
+    logging.info(f"File received and processing started.")
+    logging.info(f"File details - Name: {filename}, Size: {filesize}, User ID: {user_id}")
+
+    # Generate stream link (Ensure you replace with the correct method)
+    file_name = filename.replace(" ", "_").lower()  # Sanitizing filename
+    stream_link = f"{URL}watch/{str(message.message_id)}/{file_name}?hash={fileid}"
+
+    msg_text = f"<i><u>Your Link Generated!</u></i>\n\n<b>File Name:</b> <i>{filename}</i>\n\n<b>File Size:</b> <i>{filesize} bytes</i>\n\n<b>Stream Link:</b> <i>{stream_link}</i>"
+
+    # Send reply with options
+    options_buttons = [
+        [InlineKeyboardButton("Generate Sample Video", callback_data="sample_video")],
+        [InlineKeyboardButton("Generate Screenshot", callback_data="screenshot")],
+        [InlineKeyboardButton("Extract Thumbnail", callback_data="thumbnail")]
+    ]
+    reply_markup = InlineKeyboardMarkup(options_buttons)
+
+    await message.reply_text(
+        text=msg_text,
+        reply_markup=reply_markup,
+        parse_mode="HTML"
+    )
+
+
+@app.on_callback_query(filters.regex("thumbnail"))
+async def extract_thumbnail(client, callback_query: CallbackQuery):
     try:
-        file = getattr(message, message.media.value)
-        filename = file.file_name
-        filesize = humanize.naturalsize(file.file_size)
-        fileid = file.file_id
-        user_id = message.from_user.id
-        username = message.from_user.mention
+        # Ensure that the message contains a video
+        if callback_query.message.video:
+            logging.info("User selected Extract Thumbnail.")
 
-        # Logging file details
-        logging.info(f"File received and processing started.")
-        logging.info(f"File details - Name: {filename}, Size: {filesize}, User ID: {user_id}")
-        
-        # Send log to the log channel
-        log_msg = await client.send_cached_media(
-            chat_id=LOG_CHANNEL,
-            file_id=fileid,
-        )
+            # Extract thumbnail using ffmpeg (You may need to download the video first)
+            video_file = callback_query.message.video.file_id
+            thumbnail_file = "thumbnail.jpg"
+            cmd = [
+                "ffmpeg", 
+                "-i", video_file,
+                "-vf", "thumbnail", 
+                "-vframes", "1", 
+                thumbnail_file
+            ]
+            subprocess.run(cmd, check=True)
 
-        # URL encode the filename
-        fileName = quote_plus(get_name(log_msg))
+            # Send the extracted thumbnail
+            await client.send_photo(callback_query.from_user.id, photo=thumbnail_file)
 
-        # Generate the stream and download links
-        if SHORTLINK == False:
-            stream = f"{URL}watch/{str(log_msg.id)}/{fileName}?hash={get_hash(log_msg)}"
-            download = f"{URL}{str(log_msg.id)}/{fileName}?hash={get_hash(log_msg)}"
+            # Cleanup the thumbnail file
+            os.remove(thumbnail_file)
+            logging.info("Thumbnail extracted and sent.")
         else:
-            stream = await get_shortlink(f"{URL}watch/{str(log_msg.id)}/{fileName}?hash={get_hash(log_msg)}")
-            download = await get_shortlink(f"{URL}{str(log_msg.id)}/{fileName}?hash={get_hash(log_msg)}")
-
-        msg_text = """<i><u>𝗬𝗼𝘂𝗿 𝗟𝗶𝗻𝗸 𝗚𝗲𝗻𝗲𝗿𝗮𝘁𝗲𝗱 !</u></i>\n\n<b>📂 Fɪʟᴇ ɴᴀᴍᴇ :</b> <i>{}</i>\n\n<b>📦 Fɪʟᴇ ꜱɪᴢᴇ :</b> <i>{}</i>\n\n<b>📥 Dᴏᴡɴʟᴏᴀᴅ :</b> <i>{}</i>\n\n<b> 🖥ᴡᴀᴛᴄʜ  :</b> <i>{}</i>\n\n<b>🚸 Nᴏᴛᴇ : ʟɪɴᴋ ᴡᴏɴ'ᴛ ᴇxᴘɪʀᴇ ᴛɪʟʟ ɪ ᴅᴇʟᴇᴛᴇ</b>"""
-
-        # Send the message with the options
-        buttons = [
-            [InlineKeyboardButton("🎥 Generate Sample Video", callback_data="sample_video")],
-            [InlineKeyboardButton("📸 Generate Screenshot", callback_data="screenshot")],
-            [InlineKeyboardButton("📷 Extract Thumbnail", callback_data="thumbnail")]
-        ]
-        rm = InlineKeyboardMarkup(buttons)
-
-        await client.send_message(
-            chat_id=message.from_user.id,
-            text=msg_text.format(get_name(log_msg), humanbytes(get_media_file_size(message)), download, stream),
-            reply_markup=rm,
-            parse_mode=enums.ParseMode.HTML
-        )
-
-        # Log the action
-        logging.info("Sending message with options...")
-
-    except Exception as e:
-        logging.error(f"Error in stream_start: {e}")
-        await client.send_message(message.from_user.id, "Sorry, something went wrong. Please try again later.")
-
-
-@Client.on_callback_query(filters.regex("sample_video"))
-async def process_sample_video(client, callback_query: CallbackQuery):
-    try:
-        logging.info("User selected Generate Sample Video.")
-        # Ask for the duration options
-        duration_buttons = [
-            [InlineKeyboardButton("20 Seconds", callback_data="sample_video_20sec")],
-            [InlineKeyboardButton("30 Seconds", callback_data="sample_video_30sec")],
-            [InlineKeyboardButton("50 Seconds", callback_data="sample_video_50sec")]
-        ]
-        rm = InlineKeyboardMarkup(duration_buttons)
-        await callback_query.message.edit_text(
-            text="Select the duration for the sample video.",
-            reply_markup=rm
-        )
-    except Exception as e:
-        logging.error(f"Error in process_sample_video: {e}")
-        await callback_query.answer("Error while processing the sample video.")
-
-
-@Client.on_callback_query(filters.regex(r"sample_video_(\d+)sec"))
-async def generate_sample_video(client, callback_query: CallbackQuery):
-    try:
-        duration = callback_query.data.split("_")[2]
-        logging.info(f"Generating sample video of {duration} seconds.")
-        
-        # Generate the sample video using ffmpeg
-        video_file = callback_query.message.reply_to_message
-        output_file = f"sample_{duration}.mp4"
-        cmd = [
-            "ffmpeg", 
-            "-i", video_file.video.file_id, 
-            "-t", duration, 
-            "-c:v", "libx264", 
-            "-c:a", "aac", 
-            output_file
-        ]
-        subprocess.run(cmd, check=True)
-        
-        # Send the generated video
-        await client.send_video(callback_query.from_user.id, video=output_file)
-
-        # Log and cleanup
-        os.remove(output_file)
-        logging.info(f"Sample video generated and sent. Duration: {duration} seconds.")
+            # Handle the case where the message doesn't contain a video
+            await callback_query.answer("Error: No video found to extract the thumbnail from.")
+            logging.error("No video found in the message for thumbnail extraction.")
     
     except Exception as e:
-        logging.error(f"Error generating sample video: {e}")
-        await callback_query.answer("Error while generating the sample video.")
+        logging.error(f"Error extracting thumbnail: {e}")
+        await callback_query.answer("Error while extracting the thumbnail.")
 
 
-@Client.on_callback_query(filters.regex("screenshot"))
+@app.on_callback_query(filters.regex("screenshot"))
 async def generate_screenshot(client, callback_query: CallbackQuery):
     try:
-        logging.info("User selected Generate Screenshot.")
-        
-        # Ask for screenshot options
-        screenshot_buttons = [
-            [InlineKeyboardButton("5 Seconds", callback_data="screenshot_5sec")],
-            [InlineKeyboardButton("10 Seconds", callback_data="screenshot_10sec")]
-        ]
-        rm = InlineKeyboardMarkup(screenshot_buttons)
-        await callback_query.message.edit_text(
-            text="Select the time for the screenshot.",
-            reply_markup=rm
-        )
+        # Ensure that the message contains a video
+        if callback_query.message.video:
+            logging.info("User selected Generate Screenshot.")
+            
+            # Ask for screenshot options
+            screenshot_buttons = [
+                [InlineKeyboardButton("5 Seconds", callback_data="screenshot_5sec")],
+                [InlineKeyboardButton("10 Seconds", callback_data="screenshot_10sec")]
+            ]
+            rm = InlineKeyboardMarkup(screenshot_buttons)
+            await callback_query.message.edit_text(
+                text="Select the time for the screenshot.",
+                reply_markup=rm
+            )
+        else:
+            # Handle the case where the message doesn't contain a video
+            await callback_query.answer("Error: No video found to generate a screenshot from.")
+            logging.error("No video found in the message for screenshot generation.")
+    
     except Exception as e:
         logging.error(f"Error in generate_screenshot: {e}")
         await callback_query.answer("Error while generating the screenshot.")
 
 
-@Client.on_callback_query(filters.regex(r"screenshot_(\d+)sec"))
+@app.on_callback_query(filters.regex(r"screenshot_(\d+)sec"))
 async def take_screenshot(client, callback_query: CallbackQuery):
     try:
-        time = callback_query.data.split("_")[1]
-        logging.info(f"Taking screenshot at {time} seconds.")
-        
-        # Take screenshot using ffmpeg
-        video_file = callback_query.message.reply_to_message
-        screenshot_file = f"screenshot_{time}.jpg"
-        cmd = [
-            "ffmpeg", 
-            "-i", video_file.video.file_id,
-            "-ss", time, 
-            "-vframes", "1", 
-            screenshot_file
-        ]
-        subprocess.run(cmd, check=True)
-        
-        # Send the screenshot
-        await client.send_photo(callback_query.from_user.id, photo=screenshot_file)
+        # Ensure that the message contains a video
+        if callback_query.message.video:
+            time = callback_query.data.split("_")[1]
+            logging.info(f"Taking screenshot at {time} seconds.")
+            
+            # Take screenshot using ffmpeg (You may need to download the video first)
+            video_file = callback_query.message.video.file_id
+            screenshot_file = f"screenshot_{time}.jpg"
+            cmd = [
+                "ffmpeg", 
+                "-i", video_file,
+                "-ss", time, 
+                "-vframes", "1", 
+                screenshot_file
+            ]
+            subprocess.run(cmd, check=True)
+            
+            # Send the screenshot
+            await client.send_photo(callback_query.from_user.id, photo=screenshot_file)
 
-        # Log and cleanup
-        os.remove(screenshot_file)
-        logging.info(f"Screenshot taken and sent at {time} seconds.")
+            # Log and cleanup
+            os.remove(screenshot_file)
+            logging.info(f"Screenshot taken and sent at {time} seconds.")
+        else:
+            # Handle the case where the message doesn't contain a video
+            await callback_query.answer("Error: No video found to generate a screenshot from.")
+            logging.error("No video found in the message for screenshot generation.")
     
     except Exception as e:
         logging.error(f"Error taking screenshot: {e}")
         await callback_query.answer("Error while taking the screenshot.")
 
 
-@Client.on_callback_query(filters.regex("thumbnail"))
-async def extract_thumbnail(client, callback_query: CallbackQuery):
+@app.on_callback_query(filters.regex("sample_video"))
+async def generate_sample_video(client, callback_query: CallbackQuery):
     try:
-        logging.info("User selected Extract Thumbnail.")
-        
-        # Extract thumbnail
-        video_file = callback_query.message.reply_to_message
-        thumbnail_file = f"thumbnail.jpg"
-        cmd = [
-            "ffmpeg", 
-            "-i", video_file.video.file_id,
-            "-vf", "thumbnail", 
-            "-vframes", "1", 
-            thumbnail_file
-        ]
-        subprocess.run(cmd, check=True)
-        
-        # Send the thumbnail
-        await client.send_photo(callback_query.from_user.id, photo=thumbnail_file)
-
-        # Log and cleanup
-        os.remove(thumbnail_file)
-        logging.info("Thumbnail extracted and sent.")
+        # Ensure that the message contains a video
+        if callback_query.message.video:
+            logging.info("User selected Generate Sample Video.")
+            
+            # Ask for sample video options
+            sample_video_buttons = [
+                [InlineKeyboardButton("20 Seconds", callback_data="sample_video_20sec")],
+                [InlineKeyboardButton("30 Seconds", callback_data="sample_video_30sec")],
+                [InlineKeyboardButton("50 Seconds", callback_data="sample_video_50sec")]
+            ]
+            rm = InlineKeyboardMarkup(sample_video_buttons)
+            await callback_query.message.edit_text(
+                text="Select the duration for the sample video.",
+                reply_markup=rm
+            )
+        else:
+            # Handle the case where the message doesn't contain a video
+            await callback_query.answer("Error: No video found to generate a sample video from.")
+            logging.error("No video found in the message for sample video generation.")
     
     except Exception as e:
-        logging.error(f"Error extracting thumbnail: {e}")
-        await callback_query.answer("Error while extracting the thumbnail.")
+        logging.error(f"Error in generate_sample_video: {e}")
+        await callback_query.answer("Error while generating the sample video.")
+
+
+@app.on_callback_query(filters.regex(r"sample_video_(\d+)sec"))
+async def create_sample_video(client, callback_query: CallbackQuery):
+    try:
+        # Ensure that the message contains a video
+        if callback_query.message.video:
+            time = callback_query.data.split("_")[2]
+            logging.info(f"Generating sample video of {time} seconds.")
+            
+            # Generate the sample video using ffmpeg (You may need to download the video first)
+            video_file = callback_query.message.video.file_id
+            sample_video_file = f"sample_{time}.mp4"
+            cmd = [
+                "ffmpeg", 
+                "-i", video_file,
+                "-t", time, 
+                sample_video_file
+            ]
+            subprocess.run(cmd, check=True)
+            
+            # Send the sample video
+            await client.send_video(callback_query.from_user.id, video=sample_video_file)
+
+            # Log and cleanup
+            os.remove(sample_video_file)
+            logging.info(f"Sample video created and sent at {time} seconds.")
+        else:
+            # Handle the case where the message doesn't contain a video
+            await callback_query.answer("Error: No video found to generate a sample video from.")
+            logging.error("No video found in the message for sample video generation.")
+    
+    except Exception as e:
+        logging.error(f"Error creating sample video: {e}")
+        await callback_query.answer("Error while creating the sample video.")
+
+
+# Run the bot
+if __name__ == "__main__":
+    app.run()
