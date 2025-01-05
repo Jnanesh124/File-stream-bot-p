@@ -73,7 +73,7 @@ async def stream_start(client, message):
             thumbnail_path = await client.download_media(thumbnail)
             logger.info(f"Thumbnail downloaded to {thumbnail_path}")
 
-        fileName = quote_plus(get_name(log_msg))
+        fileName = quote_plus(str(get_name(log_msg)))
 
         if SHORTLINK == False:
             stream = f"{URL}watch/{str(log_msg.id)}/{fileName}?hash={get_hash(log_msg)}"
