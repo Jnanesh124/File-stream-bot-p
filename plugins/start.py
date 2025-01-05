@@ -165,7 +165,7 @@ async def generate_screenshot(client, callback_query):
             [ffmpeg.get_ffmpeg_exe(), '-i', video_file_path, '-show_entries', 'format=duration', '-v', 'quiet', '-of', 'csv=p=0']
         ).decode().strip()
         duration = float(duration)
-        timestamps are sorted(random.sample(range(1, int(duration)), 5))
+        timestamps = sorted(random.sample(range(1, int(duration)), 5))
 
         for t, screenshot_file_path in zip(timestamps, screenshot_file_paths):
             subprocess.run([ffmpeg.get_ffmpeg_exe(), '-i', video_file_path, '-vf', f'select=gte(n\\,{t})', '-vframes', '1', '-vsync', 'vfr', screenshot_file_path], check=True)
