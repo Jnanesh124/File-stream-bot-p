@@ -39,7 +39,7 @@ async def start(client, message):
     rm = InlineKeyboardMarkup(
         [[
             InlineKeyboardButton("✨ Update Channel", url="https://t.me/JN2FLIX")
-        ]],
+        ]]
     )
     
     await client.send_message(
@@ -55,7 +55,6 @@ async def stream_start(client, message):
     logger.info(f"Received media from {message.from_user.id}: {message.media}")
     
     try:
-        # Ensure media exists and access file properties
         if not hasattr(message, message.media.value):
             logger.error(f"No media found in the message from {message.from_user.id}")
             await message.reply_text("No media found in your message.")
@@ -73,17 +72,14 @@ async def stream_start(client, message):
             file_id=fileid,
         )
 
-        # Download thumbnail if available
         thumbnail_path = None
         if file.thumbs:
             thumbnail = file.thumbs[0].file_id
             thumbnail_path = await client.download_media(thumbnail)
             logger.info(f"Thumbnail downloaded to {thumbnail_path}")
 
-        # Ensure filename is quoted properly and not None
         fileName = quote_plus(str(get_name(log_msg)) if get_name(log_msg) else "default_file_name")
 
-        # Generate stream and download links
         if SHORTLINK == False:
             stream = f"{URL}watch/{str(log_msg.id)}/{fileName}?hash={get_hash(log_msg)}"
             download = f"{URL}{str(log_msg.id)}/{fileName}?hash={get_hash(log_msg)}"
@@ -91,14 +87,12 @@ async def stream_start(client, message):
             stream = await get_shortlink(f"{URL}watch/{str(log_msg.id)}/{fileName}?hash={get_hash(log_msg)}")
             download = await get_shortlink(f"{URL}{str(log_msg.id)}/{fileName}?hash={get_hash(log_msg)}")
 
-        # Create message text with links
         msg_text = (f"<i><u>Your Link Generated!</u></i>\n\n"
                     f"<b>📂 File Name:</b> <i>{get_name(log_msg)}</i>\n\n"
                     f"<b>📦 File Size:</b> <i>{filesize}</i>\n\n"
                     f"<b>🔗 Stream:</b> <i><a href='{stream}'>Watch</a></i>\n\n"
                     f"<b>⬇️ Download:</b> <i><a href='{download}'>Download</a></i>")
 
-        # Send thumbnail if available, else send message text
         if thumbnail_path:
             try:
                 await message.reply_photo(
@@ -117,7 +111,6 @@ async def stream_start(client, message):
             )
             logger.info(f"Sent file without thumbnail to {message.from_user.id}")
 
-        # Clean up thumbnail file
         if thumbnail_path:
             try:
                 os.remove(thumbnail_path)
