@@ -2,11 +2,11 @@ import re
 from os import environ
 
 # Regular expression to validate ID patterns
-id_pattern = re.compile(r'^.\d+$')
+id_pattern = re.compile(r'^-?[0-9]+$')
 
 # Primary and secondary force subscription channels
-AUTH_CHANNEL = [int(ch) if id_pattern.search(ch) else ch for ch in environ.get('AUTH_CHANNEL', '-1001764441595').split()]
-SECOND_AUTH_CHANNEL = [int(ch) if id_pattern.search(ch) else ch for ch in environ.get('SECOND_AUTH_CHANNEL', '-1002135593873').split()]
+AUTH_CHANNEL = int(environ.get('AUTH_CHANNEL', '-1001764441595')) if id_pattern.search(environ.get('AUTH_CHANNEL', '-1001764441595')) else environ.get('AUTH_CHANNEL', '-1001764441595')
+SECOND_AUTH_CHANNEL = int(environ.get('SECOND_AUTH_CHANNEL', '-1002135593873')) if id_pattern.search(environ.get('SECOND_AUTH_CHANNEL', '-1002135593873')) else environ.get('SECOND_AUTH_CHANNEL', '-1002135593873')
 
 # Debugging logs to verify channel IDs
 print(f"AUTH_CHANNEL IDs: {AUTH_CHANNEL}")  # Primary channel(s)
