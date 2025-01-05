@@ -31,6 +31,7 @@ def check_ffmpeg():
 # Check if FFmpeg is available at the start
 check_ffmpeg()
 
+# Function to check subscription status
 async def is_subscribed(bot, user_id, channels):
     btn = []
     for id in channels:
