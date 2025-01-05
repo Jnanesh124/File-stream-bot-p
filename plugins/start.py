@@ -9,7 +9,6 @@ from TechVJ.util.file_properties import get_name, get_hash, get_media_file_size
 from TechVJ.util.human_readable import humanbytes
 from database.users_chats_db import db
 from utils import temp, get_shortlink
-from info import URL, LOG_CHANNEL, SHORTLINK
 import humanize
 
 # Set up logging for debugging
@@ -133,7 +132,12 @@ async def generate_sample_video(client, callback_query):
         sample_file_path = f"/tmp/sample_{os.path.basename(video_file_path).split('.')[0]}.mp4"
 
         ffmpeg_path = ffmpeg.get_ffmpeg_exe()
-        subprocess.run([ffmpeg_path, '-ss', '00:00:00', '-i', video_file_path, '-t', '00:00:20', '-c:v', 'libx264', '-c:a', 'aac', '-strict', 'experimental', sample_file_path], check=True)
+        command = [
+            ffmpeg_path, '-ss', '00:00:00', '-i', video_file_path,
+            '-t', '00:00:20', '-c:v', 'libx264', '-c:a', 'aac', '-strict', 'experimental',
+            '-y', sample_file_path
+        ]
+        subprocess.run(command, check=True)
 
         await client.send_video(
             chat_id=callback_query.message.chat.id,
@@ -144,6 +148,9 @@ async def generate_sample_video(client, callback_query):
         os.remove(video_file_path)
         os.remove(sample_file_path)
         logger.info("Sample video generated and sent successfully.")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"FFmpeg error: {e}")
+        await callback_query.answer("Failed to generate sample video due to FFmpeg error.")
     except Exception as e:
         logger.error(f"Error generating sample video: {e}")
         await callback_query.answer("Failed to generate sample video.")
