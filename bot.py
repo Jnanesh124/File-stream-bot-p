@@ -19,13 +19,15 @@ logging.basicConfig(
 logging.getLogger("aiohttp").setLevel(logging.ERROR)
 logging.getLogger("aiohttp.web").setLevel(logging.ERROR)
 
-from pyrogram import Client, idle 
+from pyrogram import Client, filters
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram.errors import UserNotParticipant
 from database.users_chats_db import db
 from info import *
 from utils import temp
 from typing import Union, Optional, AsyncGenerator
-from Script import script 
-from datetime import date, datetime 
+from Script import script
+from datetime import date, datetime
 from aiohttp import web
 from plugins import web_server
 
@@ -39,9 +41,50 @@ TechVJBot.start()
 loop = asyncio.get_event_loop()
 
 
+# Function to check subscription
+async def is_subscribed(bot, user_id, channel):
+    btn = []
+    for id in channel:
+        try:
+            await bot.get_chat_member(id, user_id)
+        except UserNotParticipant:
+            chat = await bot.get_chat(int(id))
+            btn.append([InlineKeyboardButton(f'Join {chat.title}', url=chat.invite_link)])
+        except Exception as e:
+            print(f"Error in subscription check: {e}")
+    return btn
+
+
+# Global handler for all private messages
+@TechVJBot.on_message(filters.private)
+async def force_sub_handler(client, message):
+    if AUTH_CHANNEL:
+        try:
+            btn = await is_subscribed(client, message.from_user.id, AUTH_CHANNEL)
+            if btn:
+                username = (await client.get_me()).username
+                btn.append([InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/{username}?start=true")])
+                await message.reply_text(
+                    text=f"<b>👋 Hello {message.from_user.mention},\n\nPlease join the required channels first, then click on Try Again. 😇</b>",
+                    reply_markup=InlineKeyboardMarkup(btn)
+                )
+                return  # Stop further processing if the user is not subscribed
+        except Exception as e:
+            print(f"Error: {e}")
+
+    # If subscribed, process the message normally
+    if message.command and message.command[0] == "start":
+        await message.reply_text("Welcome to the bot! You are subscribed. 🎉")
+    elif message.document or message.video or message.audio or message.photo:
+        await message.reply_text("Thanks for the file! Processing it now...")
+        # Add your file handling logic here
+    else:
+        await message.reply_text("Hello! Send me a file or use the bot commands.")
+
+
 async def start():
     print('\n')
-    print('Initalizing Your Bot')
+    print('Initializing Your Bot')
     bot_info = await TechVJBot.get_me()
     await initialize_clients()
     for name in files:
@@ -79,4 +122,3 @@ if __name__ == '__main__':
         loop.run_until_complete(start())
     except KeyboardInterrupt:
         logging.info('Service Stopped Bye 👋')
-
