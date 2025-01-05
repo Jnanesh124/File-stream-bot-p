@@ -10,7 +10,7 @@ from TechVJ.util.human_readable import humanbytes
 from database.users_chats_db import db
 from utils import temp, get_shortlink
 import humanize
-from info import URL, LOG_CHANNEL, SHORTLINK  # Add this import
+from info import URL, LOG_CHANNEL, SHORTLINK, AUTH_CHANNEL  # Add AUTH_CHANNEL import
 
 # Set up logging for debugging
 logging.basicConfig(level=logging.DEBUG)
@@ -30,18 +30,43 @@ def check_ffmpeg():
 # Check if FFmpeg is available at the start
 check_ffmpeg()
 
-@Client.on_message(filters.command("start") & filters.incoming)
+# Function to check subscription
+async def is_subscribed(bot, user_id, channel):
+    btn = []
+    for id in channel:
+        try:
+            await bot.get_chat_member(id, user_id)
+        except Exception:
+            chat = await bot.get_chat(int(id))
+            btn.append([InlineKeyboardButton(f'Join {chat.title}', url=chat.invite_link)])
+    return btn
+
+@Client.on_message(filters.command("start") & filters.private)
 async def start(client, message):
     if not await db.is_user_exist(message.from_user.id):
         await db.add_user(message.from_user.id, message.from_user.first_name)
         await client.send_message(LOG_CHANNEL, f"New user joined: {message.from_user.id} - {message.from_user.mention}")
 
+    if AUTH_CHANNEL:
+        try:
+            btn = await is_subscribed(client, message.from_user.id, AUTH_CHANNEL)
+            if btn:
+                username = (await client.get_me()).username
+                btn.append([InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/{username}?start=true")])
+                await message.reply_text(
+                    text=f"<b>👋 Hello {message.from_user.mention},\n\nPlease join the required channels first, then click on Try Again. 😇</b>",
+                    reply_markup=InlineKeyboardMarkup(btn)
+                )
+                return  # Stop further processing if the user is not subscribed
+        except Exception as e:
+            logger.error(f"Error: {e}")
+    
     rm = InlineKeyboardMarkup(
         [[
             InlineKeyboardButton("✨ Update Channel", url="https://t.me/JN2FLIX")
         ]]
     )
-    
+
     await client.send_message(
         chat_id=message.from_user.id,
         text=f"Hello {message.from_user.mention}, welcome to {temp.U_NAME}. Use this bot to generate links for your media.",
