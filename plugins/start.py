@@ -129,12 +129,12 @@ async def stream_start(client, message):
 @Client.on_callback_query(filters.regex("generate_sample_video"))
 async def generate_sample_video(client, callback_query):
     try:
-        video_file_path = await client.download_media(callback_query.message)
+        video_file_path = await client.download_media(callback_query.message, progress=progress_for_pyrogram)
         sample_file_path = f"/tmp/sample_{os.path.basename(video_file_path).split('.')[0]}.mp4"
 
         ffmpeg_path = ffmpeg.get_ffmpeg_exe()
         command = [
-            ffmpeg_path, '-y', '-i', video_file_path, '-ss', '00:00:00', '-t', '00:00:20',
+            ffmpeg_path, '-y', '-i', video_file_path, '-ss', '00:00:00', '-t', '00:01:00',
             '-c:v', 'libx264', '-c:a', 'aac', '-strict', 'experimental', sample_file_path
         ]
         subprocess.run(command, check=True)
@@ -142,18 +142,21 @@ async def generate_sample_video(client, callback_query):
         await client.send_video(
             chat_id=callback_query.message.chat.id,
             video=sample_file_path,
-            caption="Here is your sample video (20 seconds)."
+            caption="Here is your 1-minute sample video."
         )
 
         os.remove(video_file_path)
         os.remove(sample_file_path)
-        logger.info("Sample video generated and sent successfully.")
+        logger.info("1-minute sample video generated and sent successfully.")
     except subprocess.CalledProcessError as e:
         logger.error(f"FFmpeg error: {e}")
         await callback_query.answer("Failed to generate sample video due to FFmpeg error.")
     except Exception as e:
         logger.error(f"Error generating sample video: {e}")
         await callback_query.answer("Failed to generate sample video.")
+
+def progress_for_pyrogram(current, total):
+    logger.info(f"Downloading: {current * 100 / total:.1f}%")
         
 @Client.on_callback_query(filters.regex("generate_screenshot"))
 async def generate_screenshot(client, callback_query):
