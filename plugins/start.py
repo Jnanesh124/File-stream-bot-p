@@ -10,7 +10,7 @@ from TechVJ.util.human_readable import humanbytes
 from database.users_chats_db import db
 from utils import temp, get_shortlink
 import humanize
-from info import URL, LOG_CHANNEL, SHORTLINK, AUTH_CHANNEL, SECOND_AUTH_CHANNEL  # Add the import for SECOND_AUTH_CHANNEL
+from info import URL, LOG_CHANNEL, SHORTLINK, AUTH_CHANNEL, SECOND_AUTH_CHANNEL  # Import numeric channel IDs
 from pyrogram.errors import UserNotParticipant  # Import this
 
 # Set up logging for debugging
@@ -34,14 +34,23 @@ check_ffmpeg()
 # Function to check subscription status
 async def is_subscribed(bot, user_id, channels):
     btn = []
+    
+    # Log the channels being checked
+    logger.debug(f"Checking subscription for channels: {channels}")
+    
     for id in channels:
         try:
+            # Ensure the channel ID is numeric (not a username)
+            if not isinstance(id, int):
+                raise ValueError(f"Channel ID should be an integer. Got: {type(id)}")
+
             await bot.get_chat_member(id, user_id)
         except UserNotParticipant:
-            chat = await bot.get_chat(int(id))
+            chat = await bot.get_chat(id)
             btn.append([InlineKeyboardButton(f'Join {chat.title}', url=chat.invite_link)])
         except Exception as e:
-            print(f"Error in subscription check: {e}")
+            logger.error(f"Error in subscription check for channel {id}: {e}")
+            btn.append([InlineKeyboardButton(f"Error: {e}", url="https://t.me/" + str(id))])
     return btn
 
 # Handle the /start command
