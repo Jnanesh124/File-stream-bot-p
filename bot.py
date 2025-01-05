@@ -19,7 +19,7 @@ logging.basicConfig(
 logging.getLogger("aiohttp").setLevel(logging.ERROR)
 logging.getLogger("aiohttp.web").setLevel(logging.ERROR)
 
-from pyrogram import Client, filters
+from pyrogram import Client, filters, idle
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.errors import UserNotParticipant
 from database.users_chats_db import db
@@ -40,27 +40,27 @@ files = glob.glob(ppath)
 TechVJBot.start()
 loop = asyncio.get_event_loop()
 
-
 # Function to check subscription
-async def is_subscribed(bot, user_id, channel):
+async def is_subscribed(bot, user_id, channels):
     btn = []
-    for id in channel:
+    for channel_id in channels:
         try:
-            await bot.get_chat_member(id, user_id)
+            await bot.get_chat_member(channel_id, user_id)
         except UserNotParticipant:
-            chat = await bot.get_chat(int(id))
+            chat = await bot.get_chat(int(channel_id))
             btn.append([InlineKeyboardButton(f'Join {chat.title}', url=chat.invite_link)])
         except Exception as e:
             print(f"Error in subscription check: {e}")
     return btn
 
-
 # Global handler for all private messages
 @TechVJBot.on_message(filters.private)
 async def force_sub_handler(client, message):
-    if AUTH_CHANNEL:
+    if AUTH_CHANNEL or SECOND_AUTH_CHANNEL:
         try:
-            btn = await is_subscribed(client, message.from_user.id, AUTH_CHANNEL)
+            # Combine all channels for force subscription check
+            channels = AUTH_CHANNEL + SECOND_AUTH_CHANNEL
+            btn = await is_subscribed(client, message.from_user.id, channels)
             if btn:
                 username = (await client.get_me()).username
                 btn.append([InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/{username}?start=true")])
@@ -70,7 +70,7 @@ async def force_sub_handler(client, message):
                 )
                 return  # Stop further processing if the user is not subscribed
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"Error in subscription handling: {e}")
 
     # If subscribed, process the message normally
     if message.command and message.command[0] == "start":
@@ -81,7 +81,7 @@ async def force_sub_handler(client, message):
     else:
         await message.reply_text("Hello! Send me a file or use the bot commands.")
 
-
+# Bot startup logic
 async def start():
     print('\n')
     print('Initializing Your Bot')
@@ -115,7 +115,6 @@ async def start():
     bind_address = "0.0.0.0"
     await web.TCPSite(app, bind_address, PORT).start()
     await idle()
-
 
 if __name__ == '__main__':
     try:
