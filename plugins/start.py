@@ -134,9 +134,8 @@ async def generate_sample_video(client, callback_query):
 
         ffmpeg_path = ffmpeg.get_ffmpeg_exe()
         command = [
-            ffmpeg_path, '-ss', '00:00:00', '-i', video_file_path,
-            '-t', '00:00:20', '-c:v', 'libx264', '-c:a', 'aac', '-strict', 'experimental',
-            '-y', sample_file_path
+            ffmpeg_path, '-y', '-i', video_file_path, '-ss', '00:00:00', '-t', '00:00:20',
+            '-c:v', 'libx264', '-c:a', 'aac', '-strict', 'experimental', sample_file_path
         ]
         subprocess.run(command, check=True)
 
@@ -155,7 +154,7 @@ async def generate_sample_video(client, callback_query):
     except Exception as e:
         logger.error(f"Error generating sample video: {e}")
         await callback_query.answer("Failed to generate sample video.")
-
+        
 @Client.on_callback_query(filters.regex("generate_screenshot"))
 async def generate_screenshot(client, callback_query):
     try:
