@@ -78,7 +78,22 @@ async def start(client, message):
 @Client.on_message(filters.private & (filters.document | filters.video))
 async def stream_start(client, message):
     logger.info(f"Received media from {message.from_user.id}: {message.media}")
-    
+
+    # Check if user is subscribed before processing file
+    if AUTH_CHANNEL:
+        try:
+            btn = await is_subscribed(client, message.from_user.id, AUTH_CHANNEL)
+            if btn:
+                username = (await client.get_me()).username
+                btn.append([InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/{username}?start=true")])
+                await message.reply_text(
+                    text=f"<b>👋 Hello {message.from_user.mention},\n\nPlease join the required channels first, then click on Try Again. 😇</b>",
+                    reply_markup=InlineKeyboardMarkup(btn)
+                )
+                return  # Stop further processing if the user is not subscribed
+        except Exception as e:
+            logger.error(f"Error: {e}")
+
     try:
         if not hasattr(message, message.media.value):
             logger.error(f"No media found in the message from {message.from_user.id}")
