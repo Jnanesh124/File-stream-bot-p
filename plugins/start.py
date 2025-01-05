@@ -38,12 +38,14 @@ async def is_subscribed(bot, user_id, channels):
     # Log the channels being checked
     logger.debug(f"Checking subscription for channels: {channels}")
     
+    # Ensure the channels are integers or strings
     for id in channels:
         try:
-            # Ensure the channel ID is numeric (not a username)
-            if not isinstance(id, int):
-                raise ValueError(f"Channel ID should be an integer. Got: {type(id)}")
+            # Check if it's a valid channel ID
+            if not isinstance(id, (int, str)):
+                raise ValueError(f"Channel ID should be an integer or string. Got: {type(id)}")
 
+            # Check if the user is a member of the channel
             await bot.get_chat_member(id, user_id)
         except UserNotParticipant:
             chat = await bot.get_chat(id)
