@@ -11,6 +11,7 @@ from database.users_chats_db import db
 from utils import temp, get_shortlink
 import humanize
 from info import URL, LOG_CHANNEL, SHORTLINK, AUTH_CHANNEL, SECOND_AUTH_CHANNEL  # Add the import for SECOND_AUTH_CHANNEL
+from pyrogram.errors import UserNotParticipant  # Import this
 
 # Set up logging for debugging
 logging.basicConfig(level=logging.DEBUG)
