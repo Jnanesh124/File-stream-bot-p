@@ -10,6 +10,7 @@ from TechVJ.util.human_readable import humanbytes
 from database.users_chats_db import db
 from utils import temp, get_shortlink
 import humanize
+from info import LOG_CHANNEL  # Add this import
 
 # Set up logging for debugging
 logging.basicConfig(level=logging.DEBUG)
