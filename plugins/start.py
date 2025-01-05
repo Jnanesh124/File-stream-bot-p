@@ -1,8 +1,6 @@
 import os
-import random
 import subprocess
 import logging
-import humanize
 import imageio_ffmpeg as ffmpeg
 from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
@@ -12,6 +10,7 @@ from TechVJ.util.human_readable import humanbytes
 from database.users_chats_db import db
 from utils import temp, get_shortlink
 from info import URL, LOG_CHANNEL, SHORTLINK
+import humanize
 
 # Set up logging for debugging
 logging.basicConfig(level=logging.DEBUG)
@@ -36,7 +35,7 @@ async def start(client, message):
     if not await db.is_user_exist(message.from_user.id):
         await db.add_user(message.from_user.id, message.from_user.first_name)
         await client.send_message(LOG_CHANNEL, f"New user joined: {message.from_user.id} - {message.from_user.mention}")
-    
+
     rm = InlineKeyboardMarkup(
         [[
             InlineKeyboardButton("✨ Update Channel", url="https://t.me/JN2FLIX")
