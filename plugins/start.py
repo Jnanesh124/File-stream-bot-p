@@ -5,7 +5,7 @@ import imageio_ffmpeg as ffmpeg
 from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from urllib.parse import quote_plus
-from TechVJ.util.file_properties import get_name, get_hash, get_media_file_size
+from TechVJ.util.file_properties import get_name, get_hash
 from TechVJ.util.human_readable import humanbytes
 from database.users_chats_db import db
 from utils import temp, get_shortlink
@@ -80,6 +80,17 @@ async def stream_start(client, message):
     logger.info(f"Received media from {message.from_user.id}: {message.media}")
     
     try:
+        # Check subscription status for both channels
+        btn = await is_subscribed(client, message.from_user.id, [AUTH_CHANNEL, SECOND_AUTH_CHANNEL])
+        if btn:
+            username = (await client.get_me()).username
+            btn.append([InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/{username}?start=true")])
+            await message.reply_text(
+                text=f"<b>👋 Hello {message.from_user.mention},\n\nPlease join the required channels first, then click on Try Again. 😇</b>",
+                reply_markup=InlineKeyboardMarkup(btn)
+            )
+            return  # Stop further processing if the user is not subscribed
+        
         if not hasattr(message, message.media.value):
             logger.error(f"No media found in the message from {message.from_user.id}")
             await message.reply_text("No media found in your message.")
