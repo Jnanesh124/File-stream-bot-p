@@ -87,7 +87,6 @@ async def start(client, message):
     )
     logger.info(f"Sent start message to {message.from_user.id}")
 
-# Handle file uploads
 @Client.on_message(filters.private & (filters.document | filters.video))
 async def stream_start(client, message):
     logger.info(f"Received media from {message.from_user.id}: {message.media}")
@@ -136,6 +135,23 @@ async def stream_start(client, message):
             stream = await get_shortlink(f"{URL}watch/{str(log_msg.id)}/{fileName}?hash={get_hash(log_msg)}")
             download = await get_shortlink(f"{URL}{str(log_msg.id)}/{fileName}?hash={get_hash(log_msg)}")
 
+        # Prepare InlineKeyboardMarkup with stream and download links
+        buttons = InlineKeyboardMarkup(
+            [[
+                InlineKeyboardButton("▶️ Watch Stream", url=stream),
+                InlineKeyboardButton("⬇️ Download", url=download)
+            ]]
+        )
+
+        # Forward the media back to the user with stream and download buttons
+        await client.send_cached_media(
+            chat_id=message.from_user.id,
+            file_id=fileid,
+            reply_markup=buttons
+        )
+        logger.info(f"Sent file with buttons to {message.from_user.id}")
+
+        # Prepare additional text message
         msg_text = (f"<i><u>Your Link Generated!</u></i>\n\n"
                     f"<b>📂 File Name:</b> <i>{get_name(log_msg)}</i>\n\n"
                     f"<b>📦 File Size:</b> <i>{filesize}</i>\n\n"
@@ -147,19 +163,20 @@ async def stream_start(client, message):
                 await message.reply_photo(
                     photo=thumbnail_path,
                     caption=msg_text,
-                    quote=True
+                    parse_mode=enums.ParseMode.HTML
                 )
-                logger.info(f"Sent thumbnail successfully to {message.from_user.id}")
+                logger.info(f"Sent thumbnail message to {message.from_user.id}")
             except Exception as e:
                 logger.error(f"Error sending thumbnail: {e}")
                 await message.reply_text(f"Error sending thumbnail: {e}")
         else:
             await message.reply_text(
                 text=msg_text,
-                quote=True
+                parse_mode=enums.ParseMode.HTML
             )
-            logger.info(f"Sent file without thumbnail to {message.from_user.id}")
+            logger.info(f"Sent text message to {message.from_user.id}")
 
+        # Clean up thumbnail if downloaded
         if thumbnail_path:
             try:
                 os.remove(thumbnail_path)
