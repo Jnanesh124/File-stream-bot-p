@@ -64,8 +64,9 @@ async def message_handler(client, message):
     try:
         # Log the type of message and chat ID for debugging
         logging.info(f"Received message from chat: {message.chat.id} with type: {message.chat.type}")
+        logging.info(f"Message details: {message}")
 
-        # Check if the message is from a channel and contains a video or document
+        # Check if the message is from a channel
         if message.chat.type == 'channel':
             logging.info(f"Channel ID: {message.chat.id}, Message ID: {message.message_id}")
             if message.video:
