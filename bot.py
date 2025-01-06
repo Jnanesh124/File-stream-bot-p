@@ -68,30 +68,41 @@ async def generate_stream_link(file_id):
 @TechVJBot.on_message(filters.private | filters.channel)
 async def message_handler(client, message):
     try:
+        # Log the type of message and chat ID for debugging
+        logging.info(f"Received message from chat: {message.chat.id} with type: {message.chat.type}")
+
         # Check if the message is from a channel and contains a video or document
-        if message.chat.type == 'channel' and (message.video or message.document):
-            logging.info(f"Processing message from channel: {message.chat.id}")
+        if message.chat.type == 'channel':
+            logging.info(f"Channel ID: {message.chat.id}, Message ID: {message.message_id}")
+            if message.video:
+                logging.info(f"Received video: {message.video.file_id}")
+            if message.document:
+                logging.info(f"Received document: {message.document.file_id}")
+            
+            # Process video or document
+            if message.video or message.document:
+                # Forward media to log channel
+                forwarded_message = await message.forward(LOG_CHANNEL)
+                logging.info(f"Forwarded message ID: {forwarded_message.id}")
 
-            # Forward media to log channel
-            forwarded_message = await message.forward(LOG_CHANNEL)
-            logging.info(f"Forwarded message ID: {forwarded_message.id}")
+                # Generate streaming link
+                stream_link = await generate_stream_link(forwarded_message.id)
 
-            # Generate streaming link
-            stream_link = await generate_stream_link(forwarded_message.id)
-
-            if stream_link:
-                # Add button with the streaming link
-                reply_markup = InlineKeyboardMarkup(
-                    [[InlineKeyboardButton("📽 Stream Video", url=stream_link)]]
-                )
-                # Reply with the button
-                await message.reply_text(
-                    "Your streaming link is ready! 🎉",
-                    reply_markup=reply_markup
-                )
+                if stream_link:
+                    # Add button with the streaming link
+                    reply_markup = InlineKeyboardMarkup(
+                        [[InlineKeyboardButton("📽 Stream Video", url=stream_link)]]
+                    )
+                    # Reply with the button
+                    await message.reply_text(
+                        "Your streaming link is ready! 🎉",
+                        reply_markup=reply_markup
+                    )
+                else:
+                    await message.reply_text("⚠️ Failed to generate a streaming link. Please try again.")
             else:
-                await message.reply_text("⚠️ Failed to generate a streaming link. Please try again.")
-        
+                logging.info("Received message without video or document, skipping...")
+
         # Handle private chat messages if channels are required for subscription
         elif message.chat.type == 'private' and AUTH_CHANNEL:
             logging.info(f"Processing message from private chat: {message.chat.id}")
