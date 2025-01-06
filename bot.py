@@ -48,44 +48,52 @@ async def is_subscribed(bot, user_id, channels):
             chat = await bot.get_chat(int(channel_id))
             btn.append([InlineKeyboardButton(f'Join {chat.title}', url=chat.invite_link)])
         except Exception as e:
-            print(f"Error in subscription check: {e}")
+            logging.error(f"Error in subscription check: {e}")
     return btn
 
 # Function to generate and shorten streaming link
 async def generate_stream_link(file_id):
-    # Replace with actual logic to generate a streaming link
-    raw_link = f"https://your-stream-server.com/{file_id}"
-    short_link = await get_shortlink(raw_link)  # Shorten the link
-    return short_link
+    try:
+        # Replace with actual logic to generate a streaming link
+        raw_link = f"https://your-stream-server.com/{file_id}"
+        logging.info(f"Generated raw link: {raw_link}")
+        short_link = await get_shortlink(raw_link)  # Shorten the link
+        logging.info(f"Generated short link: {short_link}")
+        return short_link
+    except Exception as e:
+        logging.error(f"Error generating short link: {e}")
+        return None
 
 # Global handler for all private messages and channels
 @TechVJBot.on_message(filters.private | filters.channel)
 async def message_handler(client, message):
-    if message.chat.type in ['channel'] and (message.video or message.document):
-        try:
+    try:
+        if message.chat.type == 'channel' and (message.video or message.document):
+            logging.info(f"Processing message from channel: {message.chat.id}")
+            
             # Forward media to log channel
             forwarded_message = await message.forward(LOG_CHANNEL)
-
+            logging.info(f"Forwarded message ID: {forwarded_message.id}")
+            
             # Generate streaming link
             stream_link = await generate_stream_link(forwarded_message.id)
-
-            # Add button with the streaming link
-            reply_markup = InlineKeyboardMarkup(
-                [[InlineKeyboardButton("📽 Stream Video", url=stream_link)]]
-            )
-
-            # Reply with the button
-            await message.reply_text(
-                "Your streaming link is ready! 🎉",
-                reply_markup=reply_markup
-            )
-        except Exception as e:
-            logging.error(f"Error handling message: {e}")
-            await message.reply_text(
-                "⚠️ Failed to generate a streaming link. Please try again later."
-            )
-    elif message.chat.type == 'private' and AUTH_CHANNEL:
-        try:
+            
+            if stream_link:
+                # Add button with the streaming link
+                reply_markup = InlineKeyboardMarkup(
+                    [[InlineKeyboardButton("📽 Stream Video", url=stream_link)]]
+                )
+                # Reply with the button
+                await message.reply_text(
+                    "Your streaming link is ready! 🎉",
+                    reply_markup=reply_markup
+                )
+            else:
+                await message.reply_text("⚠️ Failed to generate a streaming link. Please try again.")
+        elif message.chat.type == 'private' and AUTH_CHANNEL:
+            logging.info(f"Processing message from private chat: {message.chat.id}")
+            
+            # Check subscription
             channels = AUTH_CHANNEL + SECOND_AUTH_CHANNEL
             btn = await is_subscribed(client, message.from_user.id, channels)
             if btn:
@@ -96,11 +104,14 @@ async def message_handler(client, message):
                     reply_markup=InlineKeyboardMarkup(btn)
                 )
                 return
-        except Exception as e:
-            print(f"Error in subscription handling: {e}")
-
-    # Default response
-    await message.reply_text("Hello! Send a video file to get a streaming link.")
+            
+            # Default response for private messages
+            await message.reply_text("Hello! Send a video file to get a streaming link.")
+        else:
+            logging.info(f"Unhandled message type from chat: {message.chat.id}")
+    except Exception as e:
+        logging.error(f"Error in message handler: {e}")
+        await message.reply_text("⚠️ An error occurred while processing your request. Please try again.")
 
 # Bot startup logic
 async def start():
