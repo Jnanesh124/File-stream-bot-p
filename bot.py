@@ -68,16 +68,17 @@ async def generate_stream_link(file_id):
 @TechVJBot.on_message(filters.private | filters.channel)
 async def message_handler(client, message):
     try:
+        # Check if the message is from a channel and contains a video or document
         if message.chat.type == 'channel' and (message.video or message.document):
             logging.info(f"Processing message from channel: {message.chat.id}")
-            
+
             # Forward media to log channel
             forwarded_message = await message.forward(LOG_CHANNEL)
             logging.info(f"Forwarded message ID: {forwarded_message.id}")
-            
+
             # Generate streaming link
             stream_link = await generate_stream_link(forwarded_message.id)
-            
+
             if stream_link:
                 # Add button with the streaming link
                 reply_markup = InlineKeyboardMarkup(
@@ -90,9 +91,11 @@ async def message_handler(client, message):
                 )
             else:
                 await message.reply_text("⚠️ Failed to generate a streaming link. Please try again.")
+        
+        # Handle private chat messages if channels are required for subscription
         elif message.chat.type == 'private' and AUTH_CHANNEL:
             logging.info(f"Processing message from private chat: {message.chat.id}")
-            
+
             # Check subscription
             channels = AUTH_CHANNEL + SECOND_AUTH_CHANNEL
             btn = await is_subscribed(client, message.from_user.id, channels)
@@ -104,11 +107,13 @@ async def message_handler(client, message):
                     reply_markup=InlineKeyboardMarkup(btn)
                 )
                 return
-            
+
             # Default response for private messages
             await message.reply_text("Hello! Send a video file to get a streaming link.")
+
         else:
             logging.info(f"Unhandled message type from chat: {message.chat.id}")
+
     except Exception as e:
         logging.error(f"Error in message handler: {e}")
         await message.reply_text("⚠️ An error occurred while processing your request. Please try again.")
