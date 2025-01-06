@@ -81,6 +81,9 @@ async def message_handler(client, message):
             )
         except Exception as e:
             logging.error(f"Error handling message: {e}")
+            await message.reply_text(
+                "⚠️ Failed to generate a streaming link. Please try again later."
+            )
     elif message.chat.type == 'private' and AUTH_CHANNEL:
         try:
             channels = AUTH_CHANNEL + SECOND_AUTH_CHANNEL
