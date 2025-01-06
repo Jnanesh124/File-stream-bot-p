@@ -48,21 +48,15 @@ async def is_subscribed(bot, user_id, channels):
             chat = await bot.get_chat(int(channel_id))
             btn.append([InlineKeyboardButton(f'Join {chat.title}', url=chat.invite_link)])
         except Exception as e:
-            logging.error(f"Error in subscription check: {e}")
+            print(f"Error in subscription check: {e}")
     return btn
 
 # Function to generate and shorten streaming link
 async def generate_stream_link(file_id):
-    try:
-        # Replace with actual logic to generate a streaming link
-        raw_link = f"https://your-stream-server.com/{file_id}"
-        logging.info(f"Generated raw link: {raw_link}")
-        short_link = await get_shortlink(raw_link)  # Shorten the link
-        logging.info(f"Generated short link: {short_link}")
-        return short_link
-    except Exception as e:
-        logging.error(f"Error generating short link: {e}")
-        return None
+    # Replace with actual logic to generate a streaming link
+    raw_link = f"https://your-stream-server.com/{file_id}"
+    short_link = await get_shortlink(raw_link)  # Shorten the link
+    return short_link
 
 # Global handler for all private messages and channels
 @TechVJBot.on_message(filters.private | filters.channel)
