@@ -58,47 +58,47 @@ async def generate_stream_link(file_id):
     short_link = await get_shortlink(raw_link)  # Shorten the link
     return short_link
 
-# Global handler for all private messages and channels
 @TechVJBot.on_message(filters.private | filters.channel)
 async def message_handler(client, message):
     try:
-        # Log the type of message and chat ID for debugging
         logging.info(f"Received message from chat: {message.chat.id} with type: {message.chat.type}")
         logging.info(f"Message details: {message}")
 
-        # Check if the message is from a channel
+        # Handle channel messages with media (video or document)
         if message.chat.type == 'channel':
             logging.info(f"Channel ID: {message.chat.id}, Message ID: {message.message_id}")
-            if message.video:
-                logging.info(f"Received video: {message.video.file_id}")
-            if message.document:
-                logging.info(f"Received document: {message.document.file_id}")
             
-            # Process video or document
-            if message.video or message.document:
-                # Forward media to log channel
-                forwarded_message = await message.forward(LOG_CHANNEL)
-                logging.info(f"Forwarded message ID: {forwarded_message.id}")
+            if message.document:
+                logging.info(f"Received document: {message.document.file_id}, File name: {message.document.file_name}")
+                
+                # Check if the document is a video file
+                if message.document.mime_type.startswith('video'):
+                    # Forward media to log channel
+                    forwarded_message = await message.forward(LOG_CHANNEL)
+                    logging.info(f"Forwarded message ID: {forwarded_message.id}")
 
-                # Generate streaming link
-                stream_link = await generate_stream_link(forwarded_message.id)
+                    # Generate streaming link
+                    stream_link = await generate_stream_link(forwarded_message.id)
 
-                if stream_link:
-                    # Add button with the streaming link
-                    reply_markup = InlineKeyboardMarkup(
-                        [[InlineKeyboardButton("📽 Stream Video", url=stream_link)]]
-                    )
-                    # Reply with the button
-                    await message.reply_text(
-                        "Your streaming link is ready! 🎉",
-                        reply_markup=reply_markup
-                    )
+                    if stream_link:
+                        # Add button with the streaming link
+                        reply_markup = InlineKeyboardMarkup(
+                            [[InlineKeyboardButton("📽 Stream Video", url=stream_link)]]
+                        )
+                        # Reply with the button
+                        await message.reply_text(
+                            "Your streaming link is ready! 🎉",
+                            reply_markup=reply_markup
+                        )
+                    else:
+                        await message.reply_text("⚠️ Failed to generate a streaming link. Please try again.")
                 else:
-                    await message.reply_text("⚠️ Failed to generate a streaming link. Please try again.")
+                    logging.info("Received a non-video document, skipping...")
+            
             else:
-                logging.info("Received message without video or document, skipping...")
+                logging.info("No media found, skipping...")
 
-        # Handle private chat messages if channels are required for subscription
+        # Handle private chat messages if needed
         elif message.chat.type == 'private' and AUTH_CHANNEL:
             logging.info(f"Processing message from private chat: {message.chat.id}")
 
@@ -116,9 +116,6 @@ async def message_handler(client, message):
 
             # Default response for private messages
             await message.reply_text("Hello! Send a video file to get a streaming link.")
-
-        else:
-            logging.info(f"Unhandled message type from chat: {message.chat.id}")
 
     except Exception as e:
         logging.error(f"Error in message handler: {e}")
