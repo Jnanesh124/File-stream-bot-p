@@ -76,7 +76,7 @@ async def start(client, message):
     rm = InlineKeyboardMarkup(
         [[
             InlineKeyboardButton("✨ Update Channel", url="https://t.me/JN2FLIX")
-        ]]
+        ]],
     )
     
     await client.send_message(
