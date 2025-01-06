@@ -54,7 +54,7 @@ async def is_subscribed(bot, user_id, channels):
 # Function to generate and shorten streaming link
 async def generate_stream_link(file_id):
     # Replace with actual logic to generate a streaming link
-    raw_link = f"https://your-stream-server.com/{file_id}"
+    raw_link = f"https://streembot-009a426ab9b2.herokuapp.com/{file_id}"
     short_link = await get_shortlink(raw_link)  # Shorten the link
     return short_link
 
