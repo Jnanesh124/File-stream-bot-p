@@ -20,7 +20,7 @@ BOT_TOKEN = environ.get('BOT_TOKEN', "7774713343:AAHJYTcuEa-20YCJDoMpiwkL2EViZdi
 
 # Bot hosting settings
 PORT = environ.get("PORT", "8080")
-URL = environ.get("URL", "https://streembot-009a426ab9b2.herokuapp.com/")
+URL = environ.get("URL", "https://www.rockers-disc.xyz/")
 ON_HEROKU = 'DYNO' in environ
 
 # Logging and admin details
