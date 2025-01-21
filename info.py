@@ -5,7 +5,7 @@ from os import environ
 id_pattern = re.compile(r'^-?[0-9]+$')
 
 # Primary and secondary force subscription channels
-AUTH_CHANNEL = int(environ.get('AUTH_CHANNEL', '-1001764441595')) if id_pattern.search(environ.get('AUTH_CHANNEL', '-1001764441595')) else environ.get('AUTH_CHANNEL', '-1001764441595')
+AUTH_CHANNEL = int(environ.get('AUTH_CHANNEL', '-1002147557168')) if id_pattern.search(environ.get('AUTH_CHANNEL', '-1001764441595')) else environ.get('AUTH_CHANNEL', '-1001764441595')
 SECOND_AUTH_CHANNEL = int(environ.get('SECOND_AUTH_CHANNEL', '-1002135593873')) if id_pattern.search(environ.get('SECOND_AUTH_CHANNEL', '-1002135593873')) else environ.get('SECOND_AUTH_CHANNEL', '-1002135593873')
 
 # Debugging logs to verify channel IDs
