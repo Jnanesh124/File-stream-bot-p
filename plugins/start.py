@@ -75,7 +75,8 @@ async def start(client, message):
 
     rm = InlineKeyboardMarkup(
         [[
-            InlineKeyboardButton("✨ Update Channel", url="https://t.me/JN2FLIX")
+            InlineKeyboardButton("main Update Channel", url="https://t.me/ROCKERSBACKUP"),
+            InlineKeyboardButton("Bot Update Channel", url="https://t.me/JN2FLIX")
         ]],
     )
     
