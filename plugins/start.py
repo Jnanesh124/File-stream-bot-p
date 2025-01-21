@@ -136,22 +136,6 @@ async def stream_start(client, message):
             stream = await get_shortlink(f"{URL}watch/{str(log_msg.id)}/{fileName}?hash={get_hash(log_msg)}")
             download = await get_shortlink(f"{URL}{str(log_msg.id)}/{fileName}?hash={get_hash(log_msg)}")
 
-        # Prepare InlineKeyboardMarkup with stream and download links
-        buttons = InlineKeyboardMarkup(
-            [[
-                InlineKeyboardButton("▶️ Watch Stream", url=stream),
-                InlineKeyboardButton("⬇️ Download", url=download)
-            ]]
-        )
-
-        # Forward the media back to the user with stream and download buttons
-        await client.send_cached_media(
-            chat_id=message.from_user.id,
-            file_id=fileid,
-            reply_markup=buttons
-        )
-        logger.info(f"Sent file with buttons to {message.from_user.id}")
-
         # Prepare additional text message
         msg_text = (f"<i><u>Your Link Generated!</u></i>\n\n"
                     f"<b>📂 File Name:</b> <i>{get_name(log_msg)}</i>\n\n"
