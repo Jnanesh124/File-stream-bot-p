@@ -14,13 +14,13 @@ print(f"SECOND_AUTH_CHANNEL IDs: {SECOND_AUTH_CHANNEL}")  # Secondary channel(s)
 
 # Bot session and authentication details
 SESSION = environ.get('SESSION', 'TechVJBot')
-API_ID = int(environ.get('API_ID', '21942125'))
-API_HASH = environ.get('API_HASH', '6d412af77ce89f5bb1ed8971589d61b5')
-BOT_TOKEN = environ.get('BOT_TOKEN', "7774713343:AAHJYTcuEa-20YCJDoMpiwkL2EViZdifRp4")
+API_ID = int(environ.get('API_ID', '21125'))
+API_HASH = environ.get('API_HASH', '6d4121b5')
+BOT_TOKEN = environ.get('BOT_TOKEN', "7774fRp4")
 
 # Bot hosting settings
 PORT = environ.get("PORT", "8080")
-URL = environ.get("URL", "https://streembot-009a426ab9b2.herokuapp.com/")
+URL = environ.get("URL", "https:/kuapp.com/")
 ON_HEROKU = 'DYNO' in environ
 
 # Logging and admin details
@@ -28,7 +28,7 @@ LOG_CHANNEL = int(environ.get('LOG_CHANNEL', '-1002397892074'))
 ADMINS = [int(admin) if id_pattern.search(admin) else admin for admin in environ.get('ADMINS', '6605647659').split()]
 
 # MongoDB database details
-DATABASE_URI = environ.get('DATABASE_URI', "mongodb+srv://strong:strong@cluster0.ix7usa3.mongodb.net/?retryWrites=true&w=majority")
+DATABASE_URI = environ.get('DATABASE_URI', "ms=true&w=majority")
 DATABASE_NAME = environ.get('DATABASE_NAME', "techvjautobot")
 
 # Bot features and additional configurations
