@@ -5,7 +5,7 @@ from os import environ
 id_pattern = re.compile(r'^-?[0-9]+$')
 
 # Primary and secondary force subscription channels
-AUTH_CHANNEL = int(environ.get('AUTH_CHANNEL', '-1002147557168')) if id_pattern.search(environ.get('AUTH_CHANNEL', '-1001764441595')) else environ.get('AUTH_CHANNEL', '-1001764441595')
+AUTH_CHANNEL = int(environ.get('AUTH_CHANNEL', '-1002117269163')) if id_pattern.search(environ.get('AUTH_CHANNEL', '-1001764441595')) else environ.get('AUTH_CHANNEL', '-1001764441595')
 SECOND_AUTH_CHANNEL = int(environ.get('SECOND_AUTH_CHANNEL', '-1002135593873')) if id_pattern.search(environ.get('SECOND_AUTH_CHANNEL', '-1002135593873')) else environ.get('SECOND_AUTH_CHANNEL', '-1002135593873')
 
 # Debugging logs to verify channel IDs
@@ -25,7 +25,7 @@ ON_HEROKU = 'DYNO' in environ
 
 # Logging and admin details
 LOG_CHANNEL = int(environ.get('LOG_CHANNEL', '-1002415621521'))
-ADMINS = [int(admin) if id_pattern.search(admin) else admin for admin in environ.get('ADMINS', '6351311537').split()]
+ADMINS = [int(admin) if id_pattern.search(admin) else admin for admin in environ.get('ADMINS', '7724727988').split()]
 
 # MongoDB database details
 DATABASE_URI = environ.get('DATABASE_URI', "ms=true&w=majority")
