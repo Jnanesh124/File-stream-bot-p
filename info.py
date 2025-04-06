@@ -25,7 +25,7 @@ ON_HEROKU = 'DYNO' in environ
 
 # Logging and admin details
 LOG_CHANNEL = int(environ.get('LOG_CHANNEL', '-1002415621521'))
-ADMINS = [int(admin) if id_pattern.search(admin) else admin for admin in environ.get('ADMINS', '7724727988').split()]
+ADMINS = [int(admin) if id_pattern.search(admin) else admin for admin in environ.get('ADMINS', '7789180334').split()]
 
 # MongoDB database details
 DATABASE_URI = environ.get('DATABASE_URI', "ms=true&w=majority")
