@@ -24,7 +24,7 @@ URL = environ.get("URL", "https:/kuapp.com/")
 ON_HEROKU = 'DYNO' in environ
 
 # Logging and admin details
-LOG_CHANNEL = int(environ.get('LOG_CHANNEL', '-1002696625587'))
+LOG_CHANNEL = int(environ.get('LOG_CHANNEL', '-1002591172611'))
 ADMINS = [int(admin) if id_pattern.search(admin) else admin for admin in environ.get('ADMINS', '6415368038').split()]
 
 # MongoDB database details
