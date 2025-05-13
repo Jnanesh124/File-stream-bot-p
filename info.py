@@ -12,7 +12,7 @@ THIRD_AUTH_CHANNEL = int(environ.get('THIRD_AUTH_CHANNEL', '-1001764441595')) if
 # Debugging logs to verify channel IDs
 print(f"AUTH_CHANNEL IDs: {AUTH_CHANNEL}")  # Primary channel(s)
 print(f"SECOND_AUTH_CHANNEL IDs: {SECOND_AUTH_CHANNEL}")  # Secondary channel(s)
-print(f"THIRD_CHANNEL IDs: {AUTH_CHANNEL}")  # Primary channel(s)
+print(f"THIRD_AUTH_CHANNEL IDs: {THIRD_AUTH_CHANNEL}")  # Primary channel(s)
 
 # Bot session and authentication details
 SESSION = environ.get('SESSION', 'TechVJBot')
