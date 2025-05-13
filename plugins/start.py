@@ -10,7 +10,7 @@ from TechVJ.util.human_readable import humanbytes
 from database.users_chats_db import db
 from utils import temp, get_shortlink
 import humanize
-from info import URL, LOG_CHANNEL, SHORTLINK, AUTH_CHANNEL, SECOND_AUTH_CHANNEL  # Import numeric channel IDs
+from info import URL, LOG_CHANNEL, SHORTLINK, AUTH_CHANNEL, SECOND_AUTH_CHANNEL, THIRD_AUTH_CHANNEL  # Import numeric channel IDs
 from pyrogram.errors import UserNotParticipant  # Import this
 
 # Set up logging for debugging
@@ -63,7 +63,7 @@ async def start(client, message):
         await client.send_message(LOG_CHANNEL, f"New user joined: {message.from_user.id} - {message.from_user.mention}")
 
     # Check for subscription to both channels
-    btn = await is_subscribed(client, message.from_user.id, [AUTH_CHANNEL, SECOND_AUTH_CHANNEL])
+    btn = await is_subscribed(client, message.from_user.id, [AUTH_CHANNEL, SECOND_AUTH_CHANNEL, THIRD_AUTH_CHANNEL])
     if btn:
         username = (await client.get_me()).username
         btn.append([InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/{username}?start=true")])
@@ -77,7 +77,6 @@ async def start(client, message):
         [[
             InlineKeyboardButton("🍿 MAIN CHANNEL 🍿", url="https://t.me/ROCKERSBACKUP"),
             InlineKeyboardButton("🤖 BOT Update Channel 🤖", url="https://t.me/ROCKERS_BOTS"),
-            InlineKeyboardButton("Free Loots 🥶", url="https://t.me/JNKFREELOOTS")
         ]],
     )
     
@@ -95,7 +94,7 @@ async def stream_start(client, message):
     
     try:
         # Check subscription status for both channels
-        btn = await is_subscribed(client, message.from_user.id, [AUTH_CHANNEL, SECOND_AUTH_CHANNEL])
+        btn = await is_subscribed(client, message.from_user.id, [AUTH_CHANNEL, SECOND_AUTH_CHANNEL, THIRD_AUTH_CHANNEL])
         if btn:
             username = (await client.get_me()).username
             btn.append([InlineKeyboardButton("♻️ Try Again ♻️", url=f"https://t.me/{username}?start=true")])
