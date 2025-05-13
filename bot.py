@@ -56,10 +56,10 @@ async def is_subscribed(bot, user_id, channels):
 # Global handler for all private messages
 @TechVJBot.on_message(filters.private)
 async def force_sub_handler(client, message):
-    if AUTH_CHANNEL or SECOND_AUTH_CHANNEL:
+    if AUTH_CHANNEL or SECOND_AUTH_CHANNEL  or THIRD_AUTH_CHANNEL:
         try:
             # Combine all channels for force subscription check
-            channels = AUTH_CHANNEL + SECOND_AUTH_CHANNEL
+            channels = AUTH_CHANNEL + SECOND_AUTH_CHANNEL + THIRD_AUTH_CHANNEL
             btn = await is_subscribed(client, message.from_user.id, channels)
             if btn:
                 username = (await client.get_me()).username
