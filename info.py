@@ -7,10 +7,12 @@ id_pattern = re.compile(r'^-?[0-9]+$')
 # Primary and secondary force subscription channels
 AUTH_CHANNEL = int(environ.get('AUTH_CHANNEL', '-1002117269163')) if id_pattern.search(environ.get('AUTH_CHANNEL', '-1001764441595')) else environ.get('AUTH_CHANNEL', '-1001764441595')
 SECOND_AUTH_CHANNEL = int(environ.get('SECOND_AUTH_CHANNEL', '-1002135593873')) if id_pattern.search(environ.get('SECOND_AUTH_CHANNEL', '-1002135593873')) else environ.get('SECOND_AUTH_CHANNEL', '-1002135593873')
+THIRD_AUTH_CHANNEL = int(environ.get('THIRD_AUTH_CHANNEL', '-1001764441595')) if id_pattern.search(environ.get('THIRD_AUTH_CHANNEL', '-1001764441595')) else environ.get('THIRD_AUTH_CHANNEL', '-1001764441595')
 
 # Debugging logs to verify channel IDs
 print(f"AUTH_CHANNEL IDs: {AUTH_CHANNEL}")  # Primary channel(s)
 print(f"SECOND_AUTH_CHANNEL IDs: {SECOND_AUTH_CHANNEL}")  # Secondary channel(s)
+print(f"THIRD_CHANNEL IDs: {AUTH_CHANNEL}")  # Primary channel(s)
 
 # Bot session and authentication details
 SESSION = environ.get('SESSION', 'TechVJBot')
